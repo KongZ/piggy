@@ -1,0 +1,115 @@
+# Default values for piggy-webhooks.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-webhooks
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "9186c77-dirty"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Pod port
+port: 8443
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 10001
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 443
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  host: chart-example.local
+  path: /
+  pathType: ImplementationSpecific
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+volumeMounts: []
+
+volumes: []
+
+rbac:
+  psp:
+    enabled: false
+
+aws:
+  # Specify the Role ARN for IRSA
+  roleArn: arn:aws:iam::758279344746:role/test-piggy-webhooks
+
+mutate:
+  certificate:
+    certManager: 
+      enabled: false
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+    generate: true
+    # if certManager.use = true OR generate=true, set the certificate validity (days)
+    certValidity: 365
+    tls:
+      crt:
+      key:
+    ca:
+      crt:
+  timeoutSeconds: false
+  podsFailurePolicy: Ignore
+  image:
+    repository: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-env
+    pullPolicy: Always
+    tag: "latest"
+
+debug: false
