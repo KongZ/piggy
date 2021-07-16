@@ -11,7 +11,7 @@ Alternatively, you can use Terraform the setup IRSA. Sees https://github.com/ter
 
 The simplest IRSA Policy for Piggy webhooks
 
-```
+```yaml
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -45,14 +45,14 @@ The simplest IRSA Policy for Piggy webhooks
 
 1) Run helm chart install
 
-```
+```bash
 helm repo add kongz https://charts.kong-z.com
 helm -n piggy-webhooks install piggy-webhooks kongz/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
 ```
 
 2) Add these minimum annotations to your Deployment
 
-```
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -64,7 +64,7 @@ metadata:
 
 3) Add Env value with format `piggy:${name}`
 
-```
+```yaml
   containers:
       env:
         - name: TEST_ENV
@@ -73,15 +73,194 @@ metadata:
 
 4) That all!!. See the demo at 
 
+## Lookup mode
+This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.
+The application containers will send request to Piggy Webhooks and Piggy Webhooks will inject the secret into containers environments
+which prefix with `piggy:` 
+
+```
+                (1)  ┌───────────┐ (10)
+                ───▶ │           │ ───▶
+              ───────│ Container │───────
+                     │           │
+                     └───────────┘
+                           │
+                         «tls»
+                           │
+                          ││▲
+                       (2)│││(9)
+                          ▼││
+┌───────────┐  (3)   ┌───────────┐  (5)   ┌───────────┐
+│Kubernetes │  ◀───  │   Piggy   │  ───▶  │           │
+│    API    │────────│ Webhooks  │────────│  AWS STS  │
+│           │  ───▶  │           │  ◀───  │           │
+└───────────┘   (4)  └───────────┘   (6)  └───────────┘
+                           │▲
+                          │││(8)
+                       (7)│││
+                          ▼│
+                     ┌───────────┐
+                     │AWS Secret │
+                     │  Manager  │
+                     │           │
+                     └───────────┘
+```
+
+The example manifest file for Pod. To receive the Piggy Webhooks injection, you will need only 3 annotations
+ - `piggy.kong-z.com/piggy-address` - set a value to Piggy Webhooks service
+ - `piggy.kong-z.com/aws-secret-name` - set a value to your AWS secret name
+ - `piggy.kong-z.com/aws-region` - set a value to your AWS secret manager region
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  annotations:
+    piggy.kong-z.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
+    piggy.kong-z.com/aws-secret-name: myapp/sample
+    piggy.kong-z.com/aws-region: ap-southeast-1
+spec:
+  containers:
+    - image: myapp:v1
+      name: myapp
+      env:
+        - name: TEST_ENV
+          value: piggy:TEST_ENV
+```
+
+Then you can read the `TEST_ENV` value from environment variable. 
+
+```go
+func main() {
+  val := os.Getenv("TEST_ENV")
+  fmt.Printf("%s", val)
+}
+```
+
+## Standalone mode
+The standalone mode will not use Piggy Webhooks to inject secrets into containers. It will requires Pod service account with IRSA to 
+read the secrets from AWS Secret Manager. You can enable standalone mode by adding annotation `piggy.kong-z.com/standalone: "true"` to Pod
+
+```
+     (1)  ┌───────────┐ (6)
+     ───▶ │           │ ───▶
+   ───────│ Container │───────
+          │           │
+          └───────────┘
+             │     │
+             │     │
+      ┌──────┘     └─────┐▲
+     ││▲                │││(3)
+  (4)│││(5)          (2)│││
+     ▼││                ▼│
+┌───────────┐      ┌───────────┐
+│AWS Secret │      │           │
+│  Manager  │      │  AWS STS  │
+│           │      │           │
+└───────────┘      └───────────┘
+```
+
+Since the standalone mode does not use Piggy Webhooks thus the Pod must have a permission to read secrets from AWS Secret Manager.
+You need to setup AWS IRSA with at least this permission
+
+```yaml
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PiggySecretReadOnly",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetResourcePolicy",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:ListSecretVersionIds",
+        "secretsmanager:ListSecrets"
+      ],
+      "Effect": "Allow",
+      "Resource": "${your-secret-name-arn}"
+    }
+  ]
+}
+```
+
+Then add then follow annotations to Pod. You may notice, you don't have to provide the Piggy Webhooks address in this mode.
+ - `piggy.kong-z.com/aws-secret-name` - set a value to your AWS secret name
+ - `piggy.kong-z.com/aws-region` - set a value to your AWS secret manager region
+ - `piggy.kong-z.com/standalone` - set a value to true
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  annotations:
+    piggy.kong-z.com/aws-secret-name: omise-staging/sample/test
+    piggy.kong-z.com/aws-region: ap-southeast-1
+    piggy.kong-z.com/standalone: "true"
+spec:
+  serviceAccount: myapp
+  containers:
+    - image: myapp:v1
+      name: myapp
+      volumeMounts:
+        - mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+          name: aws-iam-token
+          readOnly: true
+      env:
+        - name: TEST_ENV
+          value: piggy:TEST_ENV
+        - name: AWS_ROLE_ARN
+          value: ${your-role-arn}
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+  volumes:
+    - name: aws-iam-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            audience: sts.amazonaws.com
+            expirationSeconds: 86400
+            path: token
+```
+
+And the service account
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp
+  annotations:
+    eks.amazonaws.com/role-arn: ${your-role-arn}
+
+```
+
 ## How does it work
 
 When application is deployed on Kubernetes, the Kubernetes API will send admission request to Piggy webhooks. The Piggy webhooks will mutate the
-pods and injecting secrets to containers
+pods and injecting secrets into containers
+
+```
+ (1)   ┌───────────┐  (2)   ┌───────────┐ (5)   ┌───────────┐ (6)   ┌───────────┐
+ ───▶  │           │  ───▶  │ Mutating  │ ───▶  │  Object   │ ───▶  │           │
+───────│Create Pod │────────│ Admission │───────│Validation │───────│ Persisted │
+       │           │        │           │       │           │       │           │
+       └───────────┘        └───────────┘       └───────────┘       └───────────┘
+                                  │
+                                «tls»
+                                  │▲
+                                 │││(4)
+                              (3)│││
+                                 ▼│
+                            ┌───────────┐
+                            │   Piggy   │
+                            │ Webhooks  │
+                            │           │
+                            └───────────┘
+```
 
 
-## Lookup mode
-
-## Standalone mode
 
 ## License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
