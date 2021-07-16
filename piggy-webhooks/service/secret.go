@@ -92,8 +92,6 @@ func injectSecrets(config *PiggyConfig, references map[string]string, env *Sanit
 		return
 	}
 
-	// TODO add allowed-sa in secret env
-
 	// Decrypts secret using the associated KMS CMK.
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
 	if result.SecretString != nil {
@@ -105,18 +103,32 @@ func injectSecrets(config *PiggyConfig, references map[string]string, env *Sanit
 				env.append(name, value)
 			}
 		} else {
-			// filter by reference
-			for refName, refValue := range references {
-				if strings.HasPrefix(refValue, "piggy:") {
-					match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-					if len(match) == 1 {
-						if val, ok := secrets[match[0][1]]; ok {
-							env.append(match[0][1], val)
-						}
+			allowed := false
+			if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
+				// if secrets contains PIGGY_ALLOWED_SA
+				for _, sa := range strings.Split(sas, ",") {
+					if sa == config.PodServiceAccountName {
+						allowed = true
+						break
 					}
-					continue
 				}
-				env.append(refName, refValue)
+			} else {
+				allowed = true
+			}
+			if allowed {
+				// filter by reference
+				for refName, refValue := range references {
+					if strings.HasPrefix(refValue, "piggy:") {
+						match := schemeRegx.FindAllStringSubmatch(refValue, -1)
+						if len(match) == 1 {
+							if val, ok := secrets[match[0][1]]; ok {
+								env.append(match[0][1], val)
+							}
+						}
+						continue
+					}
+					env.append(refName, refValue)
+				}
 			}
 		}
 	} else {
@@ -155,8 +167,9 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	}
 	annotations := pod.Annotations
 	config := &PiggyConfig{
-		AWSSecretName: GetStringValue(annotations, AWSSecretName, ""),
-		AWSRegion:     GetStringValue(annotations, ConfigAWSRegion, ""),
+		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
+		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
+		PodServiceAccountName: pod.Spec.ServiceAccountName,
 	}
 	sanitized := &SanitizedEnv{}
 	injectSecrets(config, map[string]string{}, sanitized)

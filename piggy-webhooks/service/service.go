@@ -44,6 +44,8 @@ type PiggyConfig struct {
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`
 	ImageSkipVerifyRegistry          bool              `json:"imageSkipVerifyRegistry"`
 	Standalone                       bool              `json:"standalone"`
+	//
+	PodServiceAccountName string
 }
 
 // GetEnv get environment value or return default value if not found
