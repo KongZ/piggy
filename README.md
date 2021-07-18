@@ -1,6 +1,6 @@
 ![piggy logo](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png "Piggy Logo")
 
-# piggy
+# Piggy
 
 Piggy is a tool built for supporting AWS Secret Manager with Kubernetes. It has abilities to mutating Pods, unseal secrets and inject
 into application environment.
@@ -140,6 +140,14 @@ func main() {
 }
 ```
 
+#### Limit secrets injection only allowed service accounts
+You may improve security by restrict only Pod service account to read the secrets.
+You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is service account name.
+
+The Piggy Webhooks will not inject secrets into containers if the Pod service account name is not matched with value of `PIGGY_ALLOWED_SA`. 
+
+You can add multiple service account name by seperate each name with comma
+
 ## Standalone mode
 The standalone mode will not use Piggy Webhooks to inject secrets into containers. It will requires Pod service account with IRSA to 
 read the secrets from AWS Secret Manager. You can enable standalone mode by adding annotation `piggy.kong-z.com/standalone: "true"` to Pod
@@ -237,6 +245,7 @@ metadata:
     eks.amazonaws.com/role-arn: ${your-role-arn}
 
 ```
+
 
 ## How does it work
 
