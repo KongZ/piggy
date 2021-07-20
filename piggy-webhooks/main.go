@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/KongZ/piggy/piggy-webhooks/handler"
 	"github.com/KongZ/piggy/piggy-webhooks/mutate"
@@ -55,14 +58,27 @@ func main() {
 		log.Fatal().Msgf("error creating service: %s", err)
 	}
 	mux.Handle("/secret", handler.SecretHandler(svc.GetSecret))
+	ch := make(chan struct{})
+	server := http.Server{Addr: listenAddress, Handler: mux}
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, syscall.SIGTERM)
+		<-sigint
+		// We received an interrupt signal, shut down.
+		if err := server.Shutdown(context.Background()); err != nil {
+			// Error from closing listeners, or context timeout:
+			log.Error().Msgf("HTTP server Shutdown: %v", err)
+		}
+		close(ch)
+	}()
 	if certPath == "" && keyPath == "" {
 		log.Info().Msgf("Listening on http://%s", listenAddress)
-		err = http.ListenAndServe(listenAddress, mux)
+		err = server.ListenAndServe()
 	} else {
 		log.Info().Msgf("Listening on https://%s", listenAddress)
-		err = http.ListenAndServeTLS(listenAddress, certPath, keyPath, mux)
+		err = server.ListenAndServeTLS(certPath, keyPath)
 	}
 	if err != nil {
-		log.Fatal().Msgf("error serving webhook: %s", err)
+		log.Fatal().Msgf("Error serving webhooks: %s", err)
 	}
 }
