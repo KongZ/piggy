@@ -17,7 +17,7 @@ spec:
         - name: TEST_ENV
           value: piggy:TEST_ENV
         - name: AWS_ROLE_ARN
-          value: "arn:aws:iam::758279344746:role/test-piggy-webhooks" ##${your-role-arn}
+          value: ${your-role-arn}
         - name: AWS_WEB_IDENTITY_TOKEN_FILE
           value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
       resources:
