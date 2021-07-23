@@ -8,7 +8,7 @@ image:
   repository: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-webhooks
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "9186c77-dirty"
+  tag: "78c5809-dirty"
 
 imagePullSecrets: []
 nameOverride: ""

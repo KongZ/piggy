@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,6 +24,7 @@ type GetSecretPayload struct {
 	Namespace string `json:"namespace"`
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
+	UID       string `json:"uid"`
 }
 
 type Service struct {
@@ -52,7 +52,6 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_ALLOWED_SA":      true,
 	"PIGGY_SKIP_VERIFY_TLS": true,
 }
-var schemeRegx = regexp.MustCompile(`piggy:(.+)`)
 
 func (e *SanitizedEnv) append(name string, value string) {
 	if _, ok := sanitizeEnvmap[name]; !ok {
@@ -72,7 +71,7 @@ func awsErr(err error) bool {
 	return false
 }
 
-func injectSecrets(config *PiggyConfig, references map[string]string, env *SanitizedEnv) {
+func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 	// Create a Secrets Manager client
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(config.AWSRegion),
@@ -97,38 +96,25 @@ func injectSecrets(config *PiggyConfig, references map[string]string, env *Sanit
 	if result.SecretString != nil {
 		var secrets map[string]string
 		json.Unmarshal([]byte(*result.SecretString), &secrets)
-		if len(references) == 0 {
-			// retrieve all secrets
-			for name, value := range secrets {
-				env.append(name, value)
+
+		allowed := false
+		if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
+			log.Debug().Msgf("Allowed service accounts [%s]", sas)
+			log.Debug().Msgf("Pod service account [%s]", config.PodServiceAccountName)
+			// if secrets contains PIGGY_ALLOWED_SA
+			for _, sa := range strings.Split(sas, ",") {
+				if sa == config.PodServiceAccountName {
+					allowed = true
+					break
+				}
 			}
 		} else {
-			allowed := false
-			if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
-				// if secrets contains PIGGY_ALLOWED_SA
-				for _, sa := range strings.Split(sas, ",") {
-					if sa == config.PodServiceAccountName {
-						allowed = true
-						break
-					}
-				}
-			} else {
-				allowed = true
-			}
-			if allowed {
-				// filter by reference
-				for refName, refValue := range references {
-					if strings.HasPrefix(refValue, "piggy:") {
-						match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-						if len(match) == 1 {
-							if val, ok := secrets[match[0][1]]; ok {
-								env.append(match[0][1], val)
-							}
-						}
-						continue
-					}
-					env.append(refName, refValue)
-				}
+			allowed = true
+		}
+		log.Debug().Msgf("Decision [%v]", allowed)
+		if allowed {
+			for name, value := range secrets {
+				env.append(name, value)
 			}
 		}
 	} else {
@@ -136,7 +122,7 @@ func injectSecrets(config *PiggyConfig, references map[string]string, env *Sanit
 		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
 		len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
 		if err != nil {
-			fmt.Println("Base64 Decode Error:", err)
+			log.Error().Msgf("Base64 Decode Error: %v", err)
 			return
 		}
 		decodedBinarySecret := string(decodedBinarySecretBytes[:len])
@@ -166,12 +152,15 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 		return nil, err
 	}
 	annotations := pod.Annotations
+	if annotations[Namespace+ConfigPiggyUID] != payload.UID {
+		return nil, fmt.Errorf("invalid uid")
+	}
 	config := &PiggyConfig{
 		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
 		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName: pod.Spec.ServiceAccountName,
 	}
 	sanitized := &SanitizedEnv{}
-	injectSecrets(config, map[string]string{}, sanitized)
+	injectSecrets(config, sanitized)
 	return sanitized, nil
 }

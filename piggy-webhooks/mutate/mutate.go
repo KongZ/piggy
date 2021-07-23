@@ -3,8 +3,10 @@ package mutate
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/KongZ/piggy/piggy-webhooks/service"
+	"github.com/google/uuid"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +41,11 @@ func NewMutating(ctx context.Context, k8sClient kubernetes.Interface) (*Mutating
 		k8sClient: k8sClient,
 	}
 	return mutating, nil
+}
+
+// GenerateUid get an uid
+func (m *Mutating) generateUid() string {
+	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
 
 func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[string]string) *service.PiggyConfig {

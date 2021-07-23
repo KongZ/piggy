@@ -21,6 +21,7 @@ const ConfigPiggyEnvResourceMemoryLimit = "piggy-env-resource-memory-limit"     
 const ConfigPiggyPSPAllowPrivilegeEscalation = "psp-allow-privilege-escalation" // Default to false; not allow init-container to run as root
 const ConfigPiggyAddress = "piggy-address"                                      // The endpoint of piggy-webhook
 const ConfigPiggySkipVerifyTLS = "piggy-skip-verify-tls"                        // Default to true; Allow to skip verify TLS connection at piggy-address
+const ConfigPiggyUID = "piggy-uid"                                              // A piggy uid
 const ConfigDebug = "debug"                                                     // Enable debuging log
 const ConfigImagePullSecret = "image-pull-secret"                               // Container image pull secret
 const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"            // Container image pull secret namespace
@@ -37,6 +38,7 @@ type PiggyConfig struct {
 	PiggyPspAllowPrivilegeEscalation bool              `json:"piggyPspAllowPrivilegeEscalation"`
 	PiggyAddress                     string            `json:"piggyAddress"`
 	PiggySkipVerifyTLS               string            `json:"piggySkipVerifyTLS"`
+	PiggyUID                         string            `json:"piggyUID"`
 	AWSSecretName                    string            `json:"awsSecretName"`
 	AWSRegion                        string            `json:"awsRegion"`
 	Debug                            bool              `json:"debug"`

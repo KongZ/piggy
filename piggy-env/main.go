@@ -118,6 +118,7 @@ type GetSecretPayload struct {
 	Namespace string `json:"namespace"`
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
+	UID       string `json:"uid"`
 }
 
 func requestSecrets(references map[string]string, env *sanitizedEnv) {
@@ -133,6 +134,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv) {
 		Namespace: os.Getenv("PIGGY_POD_NAMESPACE"),
 		Name:      os.Getenv("PIGGY_POD_NAME"),
 		Resources: "pods",
+		UID:       os.Getenv("PIGGY_UID"),
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -170,9 +172,9 @@ func requestSecrets(references map[string]string, env *sanitizedEnv) {
 			if len(match) == 1 {
 				if val, ok := secrets[match[0][1]]; ok {
 					env.append(match[0][1], val)
+					continue
 				}
 			}
-			continue
 		}
 		env.append(refName, refValue)
 	}

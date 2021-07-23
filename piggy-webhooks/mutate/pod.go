@@ -51,6 +51,8 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 	start := time.Now()
 	// Mutate pod only when it containing piggy.kong-z.com/aws-secret-name annotation
 	if config.AWSSecretName != "" {
+		uid := m.generateUid()
+		pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = uid
 		log.Debug().Msgf("Adding volumes to podspec...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
 			Name: "piggy-env",
@@ -133,6 +135,10 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 								FieldPath: "metadata.namespace",
 							},
 						},
+					},
+					{
+						Name:  "PIGGY_UID",
+						Value: uid,
 					},
 				}...)
 			}
