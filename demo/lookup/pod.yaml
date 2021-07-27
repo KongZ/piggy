@@ -8,7 +8,7 @@ metadata:
     piggy.kong-z.com/aws-region: ap-southeast-1
 spec:
   containers:
-    - image: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-demo:latest
+    - image: ghcr.io/kongz/piggy-demo:latest
       name: demo
       env:
         - name: TEST_ENV

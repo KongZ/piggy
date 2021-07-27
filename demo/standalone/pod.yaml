@@ -11,13 +11,13 @@ spec:
   securityContext:
     fsGroup: 1337
   containers:
-    - image: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-demo:latest
+    - image: ghcr.io/kongz/piggy-demo:latest
       name: demo
       env:
         - name: TEST_ENV
           value: piggy:TEST_ENV
         - name: AWS_ROLE_ARN
-          value: ${your-role-arn}
+          value: "${your-role-arn}"
         - name: AWS_WEB_IDENTITY_TOKEN_FILE
           value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
       resources:

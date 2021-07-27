@@ -73,7 +73,7 @@ metadata:
           value: piggy:TEST_ENV
 ```
 
-4) That all!!. See the demo at 
+4) That all!!. See the demo at https://github.com/KongZ/piggy/tree/main/demo
 
 ## Lookup mode
 This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.

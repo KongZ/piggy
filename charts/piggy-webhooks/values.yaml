@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-webhooks
-  pullPolicy: Always
+  repository: ghcr.io/kongz/piggy-webhook:78c5809-dirty
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "78c5809-dirty"
 
@@ -108,8 +108,8 @@ mutate:
   timeoutSeconds: false
   podsFailurePolicy: Ignore
   image:
-    repository: 534625442569.dkr.ecr.ap-southeast-1.amazonaws.com/test/piggy-env
-    pullPolicy: Always
+    repository: ghcr.io/kongz/piggy-env:78c5809-dirty
+    pullPolicy: IfNotPresent
     tag: "latest"
 
 debug: false
