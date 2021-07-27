@@ -51,6 +51,7 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_ADDRESS":         true,
 	"PIGGY_ALLOWED_SA":      true,
 	"PIGGY_SKIP_VERIFY_TLS": true,
+	"PIGGY_IGNORE_NO_ENV":   true,
 }
 
 func (e *SanitizedEnv) append(name string, value string) {

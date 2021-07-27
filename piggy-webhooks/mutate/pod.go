@@ -142,6 +142,14 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 					},
 				}...)
 			}
+			if config.PiggyIgnoreNoEnv {
+				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
+					{
+						Name:  "PIGGY_IGNORE_NO_ENV",
+						Value: "true",
+					},
+				}...)
+			}
 			log.Debug().Msgf("Modifying volume mounts '%s' containers...", pod.Spec.Containers[i].Name)
 			pod.Spec.Containers[i].VolumeMounts = append(pod.Spec.Containers[i].VolumeMounts, corev1.VolumeMount{
 				Name:      "piggy-env",

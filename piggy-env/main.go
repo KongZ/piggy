@@ -38,6 +38,7 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_ADDRESS":         true,
 	"PIGGY_ALLOWED_SA":      true,
 	"PIGGY_SKIP_VERIFY_TLS": true,
+	"PIGGY_IGNORE_NO_ENV":   true,
 }
 var schemeRegx = regexp.MustCompile(`piggy:(.+)`)
 
@@ -95,9 +96,9 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 				if len(match) == 1 {
 					if val, ok := secrets[match[0][1]]; ok {
 						env.append(match[0][1], val)
+						continue
 					}
 				}
-				continue
 			}
 			env.append(refName, refValue)
 		}
@@ -268,6 +269,17 @@ func main() {
 	} else {
 		log.Debug().Msgf("Running in lookup mode")
 		requestSecrets(osEnv, &sanitized)
+	}
+	ignoreNoEnv := false
+	if os.Getenv("PIGGY_IGNORE_NO_ENV") != "" {
+		ignoreNoEnv, _ = strconv.ParseBool(os.Getenv("PIGGY_IGNORE_NO_ENV"))
+	}
+	if !ignoreNoEnv {
+		for _, v := range sanitized.Env {
+			if strings.HasPrefix(v, "piggy:") {
+				log.Fatal().Msgf("[%s] not found", v)
+			}
+		}
 	}
 	entrypointCmd := cmdArgs
 	cmd, err := exec.LookPath(entrypointCmd[0])
