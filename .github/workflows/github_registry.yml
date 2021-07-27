@@ -33,7 +33,7 @@ jobs:
           if_false: latest
       - name: Get version
         id: version
-        run: echo ::set-output name=RELEASE_VERSION::${TAG##*/}
+        run: echo ::set-output name=value::${TAG##*/}
         env:
           TAG: ${{ steps.tag.outputs.value }}
       - name: Login to ghcr
