@@ -10,24 +10,24 @@ import (
 )
 
 const Namespace = "piggy.kong-z.com/"
-const AWSSecretName = "aws-secret-name"                                         // AWS secret name
-const ConfigAWSRegion = "aws-region"                                            // AWS secret's region
-const ConfigPiggyEnvImage = "piggy-env-image"                                   // The piggy-env image URL
-const ConfigPiggyEnvImagePullPolicy = "piggy-env-image-pull-policy"             // The piggy-env image pull policy
-const ConfigPiggyEnvResourceCPURequest = "piggy-env-resource-cpu-request"       // The piggy-env init-container cpu request
-const ConfigPiggyEnvResourceMemoryRequest = "piggy-env-resource-memory-request" // The piggy-env init-container memory request
-const ConfigPiggyEnvResourceCPULimit = "piggy-env-resource-cpu-limit"           // The piggy-env init-container cpu limit
-const ConfigPiggyEnvResourceMemoryLimit = "piggy-env-resource-memory-limit"     // The piggy-env init-container memory request
-const ConfigPiggyPSPAllowPrivilegeEscalation = "psp-allow-privilege-escalation" // Default to false; not allow init-container to run as root
-const ConfigPiggyAddress = "piggy-address"                                      // The endpoint of piggy-webhook
-const ConfigPiggySkipVerifyTLS = "piggy-skip-verify-tls"                        // Default to true; Allow to skip verify TLS connection at piggy-address
-const ConfigPiggyUID = "piggy-uid"                                              // A piggy uid
-const ConfigPiggyIgnoreNoEnv = "piggy-ignore-no-env"                            // Default to false; Exit piggy-env if no environment variable found on secret manager
-const ConfigDebug = "debug"                                                     // Enable debuging log
-const ConfigImagePullSecret = "image-pull-secret"                               // Container image pull secret
-const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"            // Container image pull secret namespace
-const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"              // Default to true; not verify the registry
-const ConfigStandalone = "standalone"                                           // Default to false; use piggy-webhook to read secrets instead of pod
+const AWSSecretName = "aws-secret-name"                                               // AWS secret name
+const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
+const ConfigPiggyEnvImage = "piggy-env-image"                                         // The piggy-env image URL
+const ConfigPiggyEnvImagePullPolicy = "piggy-env-image-pull-policy"                   // The piggy-env image pull policy
+const ConfigPiggyEnvResourceCPURequest = "piggy-env-resource-cpu-request"             // The piggy-env init-container cpu request
+const ConfigPiggyEnvResourceMemoryRequest = "piggy-env-resource-memory-request"       // The piggy-env init-container memory request
+const ConfigPiggyEnvResourceCPULimit = "piggy-env-resource-cpu-limit"                 // The piggy-env init-container cpu limit
+const ConfigPiggyEnvResourceMemoryLimit = "piggy-env-resource-memory-limit"           // The piggy-env init-container memory request
+const ConfigPiggyPSPAllowPrivilegeEscalation = "piggy-psp-allow-privilege-escalation" // Default to false; not allow init-container to run as root
+const ConfigPiggyAddress = "piggy-address"                                            // The endpoint of piggy-webhook
+const ConfigPiggySkipVerifyTLS = "piggy-skip-verify-tls"                              // Default to true; Allow to skip verify TLS connection at piggy-address
+const ConfigPiggyUID = "piggy-uid"                                                    // A piggy uid
+const ConfigPiggyIgnoreNoEnv = "piggy-ignore-no-env"                                  // Default to false; Exit piggy-env if no environment variable found on secret manager
+const ConfigDebug = "debug"                                                           // Enable debuging log
+const ConfigImagePullSecret = "image-pull-secret"                                     // Container image pull secret
+const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"                  // Container image pull secret namespace
+const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"                    // Default to true; not verify the registry
+const ConfigStandalone = "standalone"                                                 // Default to false; use piggy-webhook to read secrets instead of pod
 
 type PiggyConfig struct {
 	PiggyImage                       string            `json:"piggyImage"`

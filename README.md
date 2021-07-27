@@ -271,7 +271,8 @@ pods and injecting secrets into containers
                             └───────────┘
 ```
 
-
+## Annotations
+See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
 
 ## License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at

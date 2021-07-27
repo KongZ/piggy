@@ -54,7 +54,7 @@ jobs:
           tags: ghcr.io/kongz/piggy-env:${{ steps.version.outputs.value }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-      - name: Image digest
+      - name: piggy-env digest
         run: echo ${{ steps.docker_piggy-env.outputs.digest }}
       - name: Build piggy-webhooks and push
         id: docker_piggy-webhooks
@@ -67,5 +67,5 @@ jobs:
           tags: ghcr.io/kongz/piggy-webhooks:${{ steps.version.outputs.value }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-      - name: Image digest
+      - name: piggy-webhooks digest
         run: echo ${{ steps.docker_piggy-webhooks.outputs.digest }}
