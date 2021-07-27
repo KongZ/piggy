@@ -44,7 +44,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_TOKEN }}
       - name: Build piggy-env and push
-        id: docker_build
+        id: docker_piggy-env
         uses: docker/build-push-action@v2
         with:
           context: ./piggy-env
@@ -55,4 +55,17 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+        run: echo ${{ steps.docker_piggy-env.outputs.digest }}
+      - name: Build piggy-webhooks and push
+        id: docker_piggy-webhooks
+        uses: docker/build-push-action@v2
+        with:
+          context: ./piggy-webhooks
+          file: ./piggy-webhooks/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: ghcr.io/kongz/piggy-webhooks:${{ steps.version.outputs.value }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: Image digest
+        run: echo ${{ steps.docker_piggy-webhooks.outputs.digest }}
