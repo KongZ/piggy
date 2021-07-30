@@ -154,7 +154,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	}
 	annotations := pod.Annotations
 	if annotations[Namespace+ConfigPiggyUID] != payload.UID {
-		return nil, fmt.Errorf("invalid uid")
+		return nil, fmt.Errorf("%s invalid uid", payload.Name)
 	}
 	config := &PiggyConfig{
 		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),

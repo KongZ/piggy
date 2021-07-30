@@ -2,7 +2,7 @@
 PACKAGE = github.com/KongZ/piggy
 DOCKER_REGISTRY ?= ghcr.io/kongz
 PIGGY_ENV_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-env
-PIGGY_WEBHOOK_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-webhook
+PIGGY_WEBHOOK_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-webhooks
 
 # Build variables
 VERSION = $(shell git describe --tags --always --dirty)

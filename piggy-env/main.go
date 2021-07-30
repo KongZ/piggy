@@ -276,8 +276,9 @@ func main() {
 	}
 	if !ignoreNoEnv {
 		for _, v := range sanitized.Env {
-			if strings.HasPrefix(v, "piggy:") {
-				log.Fatal().Msgf("[%s] not found", v)
+			split := strings.SplitN(v, "=", 2)
+			if strings.HasPrefix(strings.ToUpper(split[1]), strings.ToUpper("piggy:")) {
+				log.Fatal().Msgf("[%s] not found", split[0])
 			}
 		}
 	}
