@@ -3,7 +3,7 @@ layout: default
 title: Piggy
 ---
 
-![piggy logo](https://raw.githubusercontent.com/matshima/website/main/docs/images/piggy.png "Piggy Logo")
+![piggy logo](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png "Piggy Logo")
 
 # Piggy
 
