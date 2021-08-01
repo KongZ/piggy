@@ -3,9 +3,9 @@ kind: Pod
 metadata:
   name: demo
   annotations:
-    piggy.kong-z.com/standalone: "true"
-    piggy.kong-z.com/aws-secret-name: demo/sample/test
-    piggy.kong-z.com/aws-region: ap-southeast-1
+    piggysec.com/standalone: "true"
+    piggysec.com/aws-secret-name: demo/sample/test
+    piggysec.com/aws-region: ap-southeast-1
 spec:
   serviceAccountName: test-piggy-webhooks
   securityContext:

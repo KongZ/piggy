@@ -3,9 +3,9 @@ kind: Pod
 metadata:
   name: demo
   annotations:
-    piggy.kong-z.com/piggy-address: https://test-piggy-webhooks.piggy-test.svc.cluster.local
-    piggy.kong-z.com/aws-secret-name: demo/sample/test
-    piggy.kong-z.com/aws-region: ap-southeast-1
+    piggysec.com/piggy-address: https://test-piggy-webhooks.piggy-test.svc.cluster.local
+    piggysec.com/aws-secret-name: demo/sample/test
+    piggysec.com/aws-region: ap-southeast-1
 spec:
   containers:
     - image: ghcr.io/kongz/piggy-demo:latest

@@ -59,9 +59,9 @@ apiVersion: v1
 kind: Pod
 metadata:
   annotations:
-    piggy.kong-z.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
-    piggy.kong-z.com/aws-secret-name: ${your-aws-secret-name} ## e.g. myapp/sample/production
-    piggy.kong-z.com/aws-region: ${your-aws-secret-region} ## e.g. ap-southeast-1
+    piggysec.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
+    piggysec.com/aws-secret-name: ${your-aws-secret-name} ## e.g. myapp/sample/production
+    piggysec.com/aws-region: ${your-aws-secret-region} ## e.g. ap-southeast-1
 ```
 
 3) Add Env value with format `piggy:${name}`
@@ -109,9 +109,9 @@ which prefix with `piggy:`
 ```
 
 The example manifest file for Pod. To receive the Piggy Webhooks injection, you will need only 3 annotations
- - `piggy.kong-z.com/piggy-address` - set a value to Piggy Webhooks service
- - `piggy.kong-z.com/aws-secret-name` - set a value to your AWS secret name
- - `piggy.kong-z.com/aws-region` - set a value to your AWS secret manager region
+ - `piggysec.com/piggy-address` - set a value to Piggy Webhooks service
+ - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
+ - `piggysec.com/aws-region` - set a value to your AWS secret manager region
 
 ```yaml
 apiVersion: v1
@@ -119,9 +119,9 @@ kind: Pod
 metadata:
   name: myapp
   annotations:
-    piggy.kong-z.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
-    piggy.kong-z.com/aws-secret-name: myapp/sample
-    piggy.kong-z.com/aws-region: ap-southeast-1
+    piggysec.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
+    piggysec.com/aws-secret-name: myapp/sample
+    piggysec.com/aws-region: ap-southeast-1
 spec:
   containers:
     - image: myapp:v1
@@ -150,7 +150,7 @@ You can add multiple service account name by seperate each name with comma
 
 ## Standalone mode
 The standalone mode will not use Piggy Webhooks to inject secrets into containers. It will requires Pod service account with IRSA to 
-read the secrets from AWS Secret Manager. You can enable standalone mode by adding annotation `piggy.kong-z.com/standalone: "true"` to Pod
+read the secrets from AWS Secret Manager. You can enable standalone mode by adding annotation `piggysec.com/standalone: "true"` to Pod
 
 ```
      (1)  ┌───────────┐ (6)
@@ -195,9 +195,9 @@ You need to setup AWS IRSA with at least this permission
 ```
 
 Then add then follow annotations to Pod. You may notice, you don't have to provide the Piggy Webhooks address in this mode.
- - `piggy.kong-z.com/aws-secret-name` - set a value to your AWS secret name
- - `piggy.kong-z.com/aws-region` - set a value to your AWS secret manager region
- - `piggy.kong-z.com/standalone` - set a value to true
+ - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
+ - `piggysec.com/aws-region` - set a value to your AWS secret manager region
+ - `piggysec.com/standalone` - set a value to true
 
 ```yaml
 apiVersion: v1
@@ -205,9 +205,9 @@ kind: Pod
 metadata:
   name: myapp
   annotations:
-    piggy.kong-z.com/aws-secret-name: omise-staging/sample/test
-    piggy.kong-z.com/aws-region: ap-southeast-1
-    piggy.kong-z.com/standalone: "true"
+    piggysec.com/aws-secret-name: omise-staging/sample/test
+    piggysec.com/aws-region: ap-southeast-1
+    piggysec.com/standalone: "true"
 spec:
   serviceAccount: myapp
   containers:

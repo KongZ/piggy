@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-const Namespace = "piggy.kong-z.com/"
+const Namespace = "piggysec.com/"
 const AWSSecretName = "aws-secret-name"                                               // AWS secret name
 const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
 const ConfigPiggyEnvImage = "piggy-env-image"                                         // The piggy-env image URL
