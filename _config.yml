@@ -25,6 +25,7 @@ description: >-
 email: your-email@example.com
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://piggysec.com"
+logo: "https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png"
 
 # Build settings
 theme: jekyll-theme-minimal
