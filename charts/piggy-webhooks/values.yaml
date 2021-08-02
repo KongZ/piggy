@@ -5,10 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/kongz/piggy-webhook:78c5809-dirty
+  repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "78c5809-dirty"
+  tag: "0.0.1"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -108,8 +108,8 @@ mutate:
   timeoutSeconds: false
   podsFailurePolicy: Ignore
   image:
-    repository: ghcr.io/kongz/piggy-env:78c5809-dirty
+    repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "0.0.1"
 
 debug: false

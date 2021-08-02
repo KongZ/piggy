@@ -19,6 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o demo .
 
 
 FROM debian:buster-slim
+RUN apt update && apt -y install curl
 
 # Create appuser
 ENV USER=appuser
