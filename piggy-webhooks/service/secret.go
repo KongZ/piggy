@@ -25,6 +25,7 @@ type GetSecretPayload struct {
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
+	Signature string `json:"signature"`
 }
 
 type Service struct {
@@ -153,6 +154,10 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 		return nil, err
 	}
 	annotations := pod.Annotations
+	sigAnno := Namespace + ConfigPiggyUID + "/" + pod.Spec.Containers[i].Name // TODO where to get container name
+	// TODO check annotation signature with payload.signature
+	// TODO check only when enforce integrity is enabled
+	// service.Namespace+service.ConfigPiggyUID+"/"+pod.Spec.Containers[i].Name
 	if annotations[Namespace+ConfigPiggyUID] != payload.UID {
 		return nil, fmt.Errorf("%s invalid uid", payload.Name)
 	}

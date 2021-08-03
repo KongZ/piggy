@@ -1,6 +1,9 @@
 package mutate
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/KongZ/piggy/piggy-webhooks/service"
@@ -159,6 +162,10 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 			if err := m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
 				log.Info().Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
 			}
+			sig := strings.TrimSpace(strings.Join(pod.Spec.Containers[i].Args, " "))
+			h := sha256.New()
+			h.Write([]byte(sig))
+			pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID+"/"+pod.Spec.Containers[i].Name] = fmt.Sprintf("%x", h.Sum(nil))
 		}
 		log.Info().Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
 		return pod, nil

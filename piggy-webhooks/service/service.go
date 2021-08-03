@@ -23,6 +23,7 @@ const ConfigPiggyAddress = "piggy-address"                                      
 const ConfigPiggySkipVerifyTLS = "piggy-skip-verify-tls"                              // Default to true; Allow to skip verify TLS connection at piggy-address
 const ConfigPiggyUID = "piggy-uid"                                                    // A piggy uid
 const ConfigPiggyIgnoreNoEnv = "piggy-ignore-no-env"                                  // Default to false; Exit piggy-env if no environment variable found on secret manager
+const ConfigPiggyEnforceIntegrity = "piggy-enforce-integrity"                         // Default to true; Check the command integrity before run.
 const ConfigDebug = "debug"                                                           // Enable debuging log
 const ConfigImagePullSecret = "image-pull-secret"                                     // Container image pull secret
 const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"                  // Container image pull secret namespace
@@ -41,6 +42,7 @@ type PiggyConfig struct {
 	PiggySkipVerifyTLS               string            `json:"piggySkipVerifyTLS"`
 	PiggyUID                         string            `json:"piggyUID"`
 	PiggyIgnoreNoEnv                 bool              `json:"piggyIgnoreNoEnv"`
+	PiggyEnforceIntegrity            bool              `json:"piggyEnforceIntegrity"`
 	AWSSecretName                    string            `json:"awsSecretName"`
 	AWSRegion                        string            `json:"awsRegion"`
 	Debug                            bool              `json:"debug"`
