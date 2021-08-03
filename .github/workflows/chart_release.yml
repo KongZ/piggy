@@ -20,9 +20,10 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_YAML: false
           VALIDATE_KUBERNETES_KUBEVAL: false
+          VALIDATE_MARKDOWN: false
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
