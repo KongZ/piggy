@@ -90,7 +90,9 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
 	if result.SecretString != nil {
 		var secrets map[string]string
-		json.Unmarshal([]byte(*result.SecretString), &secrets)
+		if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
+			log.Error().Msgf("Error while unmarshal secret %v", err)
+		}
 		for refName, refValue := range references {
 			if strings.HasPrefix(refValue, "piggy:") {
 				match := schemeRegx.FindAllStringSubmatch(refValue, -1)

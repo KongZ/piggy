@@ -162,11 +162,15 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 		PodServiceAccountName: pod.Spec.ServiceAccountName,
 		PiggyEnforceIntegrity: GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
 	}
+	signature := make(Signature)
+	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {
+		log.Error().Msgf("Error while unmarshal signature %v", err)
+	}
 	if config.PiggyEnforceIntegrity {
-		if annotations[Namespace+ConfigPiggyUID+"/"+payload.UID] != payload.Signature {
+		if signature[payload.UID] != payload.Signature {
 			return nil, fmt.Errorf("%s invalid signature", payload.Name)
 		}
-	} else if annotations[Namespace+ConfigPiggyUID] != payload.UID {
+	} else if signature[payload.UID] == "" {
 		return nil, fmt.Errorf("%s invalid uid", payload.Name)
 	}
 

@@ -2,6 +2,7 @@ package mutate
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 )
+
+type Signature map[string]string
 
 func getSecurityContext(config *service.PiggyConfig, podSecurityContext *corev1.PodSecurityContext) *corev1.SecurityContext {
 	sc := &corev1.SecurityContext{
@@ -21,14 +24,14 @@ func getSecurityContext(config *service.PiggyConfig, podSecurityContext *corev1.
 	return sc
 }
 
-func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) error {
+func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) ([]string, error) {
 	entry := container.Command
 	// if the container has no explicitly specified command
 	if len(entry) == 0 {
 		// read docker image
 		imageConfig, err := m.registry.GetImageConfig(m.context, config, m.k8sClient, pod.Namespace, *container, pod.Spec)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		entry = append(entry, imageConfig.Entrypoint...)
 		// If no Args are defined we can use the Docker CMD from the image
@@ -46,7 +49,7 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 	copy(args[1:], entry)
 	container.Command = []string{"/piggy/piggy-env"}
 	container.Args = args
-	return nil
+	return entry, nil
 }
 
 // MutatePod mutate pod
@@ -55,6 +58,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 	// Mutate pod only when it containing piggysec.com/aws-secret-name annotation
 	if config.AWSSecretName != "" {
 		uid := m.generateUid()
+		signature := make(Signature)
 		// pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = uid
 		log.Debug().Msgf("Adding volumes to podspec...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
@@ -159,15 +163,23 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 				MountPath: "/piggy/",
 			})
 			log.Debug().Msgf("Modifying command '%s' containers...", pod.Spec.Containers[i].Name)
-			if err := m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
+			var args []string
+			var err error
+			if args, err = m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
 				log.Info().Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
 			}
 			// signature
-			sig := strings.TrimSpace(strings.Join(pod.Spec.Containers[i].Args, " "))
+			sig := strings.TrimSpace(strings.Join(args, " "))
 			h := sha256.New()
 			h.Write([]byte(sig))
-			pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID+"/"+uid] = fmt.Sprintf("%x", h.Sum(nil))
+			signature[uid] = fmt.Sprintf("%x", h.Sum(nil))
 		}
+		bytes, err := json.Marshal(&signature)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling signature: %v", err)
+		}
+		pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = string(bytes)
+
 		log.Info().Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
 		return pod, nil
 	}
