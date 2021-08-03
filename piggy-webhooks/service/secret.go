@@ -28,6 +28,8 @@ type GetSecretPayload struct {
 	Signature string `json:"signature"`
 }
 
+type Signature map[string]string
+
 type Service struct {
 	context   context.Context
 	k8sClient kubernetes.Interface
@@ -154,18 +156,20 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 		return nil, err
 	}
 	annotations := pod.Annotations
-	sigAnno := Namespace + ConfigPiggyUID + "/" + pod.Spec.Containers[i].Name // TODO where to get container name
-	// TODO check annotation signature with payload.signature
-	// TODO check only when enforce integrity is enabled
-	// service.Namespace+service.ConfigPiggyUID+"/"+pod.Spec.Containers[i].Name
-	if annotations[Namespace+ConfigPiggyUID] != payload.UID {
-		return nil, fmt.Errorf("%s invalid uid", payload.Name)
-	}
 	config := &PiggyConfig{
 		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
 		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName: pod.Spec.ServiceAccountName,
+		PiggyEnforceIntegrity: GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
 	}
+	if config.PiggyEnforceIntegrity {
+		if annotations[Namespace+ConfigPiggyUID+"/"+payload.UID] != payload.Signature {
+			return nil, fmt.Errorf("%s invalid signature", payload.Name)
+		}
+	} else if annotations[Namespace+ConfigPiggyUID] != payload.UID {
+		return nil, fmt.Errorf("%s invalid uid", payload.Name)
+	}
+
 	sanitized := &SanitizedEnv{}
 	injectSecrets(config, sanitized)
 	return sanitized, nil

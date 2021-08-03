@@ -55,7 +55,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 	// Mutate pod only when it containing piggysec.com/aws-secret-name annotation
 	if config.AWSSecretName != "" {
 		uid := m.generateUid()
-		pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = uid
+		// pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = uid
 		log.Debug().Msgf("Adding volumes to podspec...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
 			Name: "piggy-env",
@@ -162,10 +162,11 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 			if err := m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
 				log.Info().Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
 			}
+			// signature
 			sig := strings.TrimSpace(strings.Join(pod.Spec.Containers[i].Args, " "))
 			h := sha256.New()
 			h.Write([]byte(sig))
-			pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID+"/"+pod.Spec.Containers[i].Name] = fmt.Sprintf("%x", h.Sum(nil))
+			pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID+"/"+uid] = fmt.Sprintf("%x", h.Sum(nil))
 		}
 		log.Info().Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
 		return pod, nil
