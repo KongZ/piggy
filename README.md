@@ -52,8 +52,8 @@ The simplest IRSA Policy for Piggy webhooks
 1) Run helm chart install
 
 ```bash
-helm repo add kongz https://charts.kong-z.com
-helm -n piggy-webhooks install piggy-webhooks kongz/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
+helm repo add piggysec https://charts.piggysec.com
+helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
 ```
 
 2) Add these minimum annotations to your Deployment
