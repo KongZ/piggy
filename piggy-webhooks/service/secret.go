@@ -25,7 +25,10 @@ type GetSecretPayload struct {
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
+	Signature string `json:"signature"`
 }
+
+type Signature map[string]string
 
 type Service struct {
 	context   context.Context
@@ -153,14 +156,24 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 		return nil, err
 	}
 	annotations := pod.Annotations
-	if annotations[Namespace+ConfigPiggyUID] != payload.UID {
-		return nil, fmt.Errorf("%s invalid uid", payload.Name)
-	}
 	config := &PiggyConfig{
 		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
 		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName: pod.Spec.ServiceAccountName,
+		PiggyEnforceIntegrity: GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
 	}
+	signature := make(Signature)
+	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {
+		log.Error().Msgf("Error while unmarshal signature %v", err)
+	}
+	if config.PiggyEnforceIntegrity {
+		if signature[payload.UID] != payload.Signature {
+			return nil, fmt.Errorf("%s invalid signature", payload.Name)
+		}
+	} else if signature[payload.UID] == "" {
+		return nil, fmt.Errorf("%s invalid uid", payload.Name)
+	}
+
 	sanitized := &SanitizedEnv{}
 	injectSecrets(config, sanitized)
 	return sanitized, nil

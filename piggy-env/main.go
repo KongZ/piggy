@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -89,7 +90,9 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
 	if result.SecretString != nil {
 		var secrets map[string]string
-		json.Unmarshal([]byte(*result.SecretString), &secrets)
+		if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
+			log.Error().Msgf("Error while unmarshal secret %v", err)
+		}
 		for refName, refValue := range references {
 			if strings.HasPrefix(refValue, "piggy:") {
 				match := schemeRegx.FindAllStringSubmatch(refValue, -1)
@@ -120,9 +123,10 @@ type GetSecretPayload struct {
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
+	Signature string `json:"signature"`
 }
 
-func requestSecrets(references map[string]string, env *sanitizedEnv) {
+func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte) {
 	address := os.Getenv("PIGGY_ADDRESS")
 	skipVerifyTLS := true
 	if os.Getenv("PIGGY_SKIP_VERIFY_TLS") != "" {
@@ -136,6 +140,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv) {
 		Name:      os.Getenv("PIGGY_POD_NAME"),
 		Resources: "pods",
 		UID:       os.Getenv("PIGGY_UID"),
+		Signature: fmt.Sprintf("%x", sig),
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -268,7 +273,10 @@ func main() {
 		injectSecrets(osEnv, &sanitized)
 	} else {
 		log.Debug().Msgf("Running in lookup mode")
-		requestSecrets(osEnv, &sanitized)
+		sig := strings.TrimSpace(strings.Join(cmdArgs, " "))
+		h := sha256.New()
+		h.Write([]byte(sig))
+		requestSecrets(osEnv, &sanitized, h.Sum(nil))
 	}
 	ignoreNoEnv := false
 	if os.Getenv("PIGGY_IGNORE_NO_ENV") != "" {

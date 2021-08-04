@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.0.1"
+  tag: "0.1.2"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -90,6 +90,9 @@ aws:
   # Specify the Role ARN for IRSA
   roleArn: 
 
+# Additonal environement variable for piggy-webhooks
+env: {}
+
 mutate:
   certificate:
     certManager: 
@@ -110,6 +113,6 @@ mutate:
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "0.0.1"
+    tag: "0.1.2"
 
 debug: false

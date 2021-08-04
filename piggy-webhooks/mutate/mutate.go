@@ -58,6 +58,7 @@ func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[stri
 	config.PiggyPspAllowPrivilegeEscalation = service.GetBoolValue(annotations, service.ConfigPiggyPSPAllowPrivilegeEscalation, false)
 	config.PiggyAddress = service.GetStringValue(annotations, service.ConfigPiggyAddress, "")
 	config.PiggyIgnoreNoEnv = service.GetBoolValue(annotations, service.ConfigPiggyIgnoreNoEnv, false)
+	config.PiggyEnforceIntegrity = service.GetBoolValue(annotations, service.ConfigPiggyEnforceIntegrity, true)
 	config.AWSSecretName = service.GetStringValue(annotations, service.AWSSecretName, "")
 	config.AWSRegion = service.GetStringValue(annotations, service.ConfigAWSRegion, "")
 	config.Debug = service.GetBoolValue(annotations, service.ConfigDebug, false)
