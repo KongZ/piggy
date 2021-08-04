@@ -3,6 +3,24 @@ entries:
   piggy-webhooks:
   - apiVersion: v2
     appVersion: 0.1.2
+    created: "2021-08-04T03:19:55.323772566Z"
+    description: Deploys a piggy webhook that inject enviroment variaiables from AWS
+      Secret Manager
+    digest: 5b32fc9480fbe043e73474210b383c44a4f9c42c368134daa2ed76c6ec667cf0
+    home: https://piggysec.com
+    icon: https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png
+    maintainers:
+    - email: goonohc@gmail.com
+      name: KongZ
+    name: piggy-webhooks
+    sources:
+    - https://www.github.com/KongZ/piggy
+    type: application
+    urls:
+    - https://github.com/KongZ/piggy/releases/download/piggy-webhooks-0.1.3/piggy-webhooks-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
+    appVersion: 0.1.2
     created: "2021-08-04T02:31:27.39113447Z"
     description: Deploys a piggy webhook that inject enviroment variaiables from AWS
       Secret Manager
@@ -55,4 +73,4 @@ entries:
     urls:
     - https://github.com/KongZ/piggy/releases/download/piggy-webhooks-0.1.0/piggy-webhooks-0.1.0.tgz
     version: 0.1.0
-generated: "2021-08-04T02:31:27.39119457Z"
+generated: "2021-08-04T03:19:55.323788366Z"
