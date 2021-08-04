@@ -275,6 +275,9 @@ pods and injecting secrets into containers
                             └───────────┘
 ```
 
+## Restrict process to run
+Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
+
 ## Annotations
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
 

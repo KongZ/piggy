@@ -52,6 +52,10 @@ spec:
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
           {{- end }}
+            {{- range $key, $val := .Values.env }}
+            - name: {{  $key | quote | upper }}
+              value: {{ $val | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.port }}
