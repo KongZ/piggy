@@ -49,7 +49,7 @@ The simplest IRSA Policy for Piggy webhooks
 `${piggy-role-arn}` can be found from Role ARN which was created by terraform above
 
 ```bash
-helm repo add piggysec https://charts.piggysec.com
+helm repo add piggysec https://piggysec.com
 helm install piggy-webhooks piggysec/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
 ```
 

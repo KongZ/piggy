@@ -52,7 +52,7 @@ The simplest IRSA Policy for Piggy webhooks
 1) Run helm chart install
 
 ```bash
-helm repo add piggysec https://charts.piggysec.com
+helm repo add piggysec https://piggysec.com
 helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
 ```
 
