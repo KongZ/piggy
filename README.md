@@ -80,6 +80,7 @@ metadata:
 4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
 
 ## Lookup mode
+
 This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.
 The application containers will send request to Piggy Webhooks and Piggy Webhooks will inject the secret into containers environments
 which prefix with `piggy:`
@@ -113,6 +114,7 @@ which prefix with `piggy:`
 ```
 
 The example manifest file for Pod. To receive the Piggy Webhooks injection, you will need only 3 annotations
+
   - `piggysec.com/piggy-address` - set a value to Piggy Webhooks service
   - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
   - `piggysec.com/aws-region` - set a value to your AWS secret manager region
@@ -144,7 +146,12 @@ func main() {
 }
 ```
 
+### Restrict process to run
+
+Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
+
 ### Limit secrets injection only allowed service accounts
+
 You may improve security by restrict only Pod service account to read the secrets.
 You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is service account name.
 
@@ -152,7 +159,18 @@ The Piggy Webhooks will not inject secrets into containers if the Pod service ac
 
 You can add multiple service account name by seperate each name with comma
 
+### Preventing unauthorized pods to read secrets
+
+The Piggy provides 3 cencepts to protect secrets.
+
+  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
+  Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
+  For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
+  - Piggy will generate a UID for each containers during mutation process. If the requests from container is not matched the UID which was generated, it will reject.
+  - Uses [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrests by service account name
+
 ## Standalone mode
+
 The standalone mode will not use Piggy Webhooks to inject secrets into containers. It will requires Pod service account with IRSA to
 read the secrets from AWS Secret Manager. You can enable standalone mode by adding annotation `piggysec.com/standalone: "true"` to Pod
 
@@ -199,6 +217,7 @@ You need to setup AWS IRSA with at least this permission
 ```
 
 Then add then follow annotations to Pod. You may notice, you don't have to provide the Piggy Webhooks address in this mode.
+
   - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
   - `piggysec.com/aws-region` - set a value to your AWS secret manager region
   - `piggysec.com/standalone` - set a value to true
@@ -240,6 +259,7 @@ spec:
 ```
 
 And the service account
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -250,6 +270,8 @@ metadata:
 
 ```
 
+Note: in standalone mode, piggy-env talks directly to AWS secret manager without talking to Kubernetes API or piggy-webhooks.
+The secrets is fully protected by AWS role permissions.
 
 ## How does it work
 
@@ -275,13 +297,12 @@ pods and injecting secrets into containers
                             └───────────┘
 ```
 
-## Restrict process to run
-Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
-
 ## Annotations
+
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
 
 ## License
+
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 <http://www.apache.org/licenses/LICENSE-2.0/>
