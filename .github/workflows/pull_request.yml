@@ -1,4 +1,4 @@
-name: Build to GHCR
+name: Build
 on:
   push:
     branches-ignore: [ main ]
@@ -21,7 +21,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_YAML: false
           VALIDATE_KUBERNETES_KUBEVAL: false
-          VALIDATE_MARKDOWN: true
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
