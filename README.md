@@ -155,7 +155,7 @@ You can add multiple service account name by seperate each name with comma
 
 ### Preventing unauthorized pods to read secrets
 The Piggy provides 3 cencepts to protect secrets.
-  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command. 
+  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
   Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
   For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
   - Piggy will generate a UID for each containers during mutation process. If the requests from container is not matched the UID which was generated, it will reject.
