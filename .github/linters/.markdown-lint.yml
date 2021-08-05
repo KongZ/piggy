@@ -1,0 +1,5 @@
+default: true
+MD001: false
+MD007:
+  indent: 2
+  start_indented: true
