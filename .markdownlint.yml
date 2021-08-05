@@ -3,3 +3,4 @@ MD001: false
 MD007:
   # Spaces for indent
   indent: 2
+  start_indented: true
