@@ -145,9 +145,11 @@ func main() {
   fmt.Printf("%s", val)
 }
 ```
+
 ### Restrict process to run
 
 Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
+
 ### Limit secrets injection only allowed service accounts
 
 You may improve security by restrict only Pod service account to read the secrets.
@@ -160,6 +162,7 @@ You can add multiple service account name by seperate each name with comma
 ### Preventing unauthorized pods to read secrets
 
 The Piggy provides 3 cencepts to protect secrets.
+
   - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
   Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
   For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
@@ -214,6 +217,7 @@ You need to setup AWS IRSA with at least this permission
 ```
 
 Then add then follow annotations to Pod. You may notice, you don't have to provide the Piggy Webhooks address in this mode.
+
   - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
   - `piggysec.com/aws-region` - set a value to your AWS secret manager region
   - `piggysec.com/standalone` - set a value to true
@@ -255,6 +259,7 @@ spec:
 ```
 
 And the service account
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
