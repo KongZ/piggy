@@ -1,8 +1,6 @@
 name: Build to GHCR
 on:
   push:
-    branches: 
-      - main
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
 jobs:
@@ -24,16 +22,10 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
-      - name: Get tag
-        uses: haya14busa/action-cond@v1
-        id: tag
-        with:
-          cond: ${{ startsWith(github.ref, 'refs/tags/') }}
-          if_true: ${{ github.ref }}
-          if_false: latest
       - name: Get version
         id: version
-        run: echo ::set-output name=value::${TAG##*/}
+        run: |
+          echo ::set-output name=value::${GITHUB_REF#refs/tags/}
         env:
           TAG: ${{ steps.tag.outputs.value }}
       - name: Login to ghcr
@@ -51,7 +43,7 @@ jobs:
           file: ./piggy-env/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: ghcr.io/kongz/piggy-env:${{ steps.version.outputs.value }}
+          tags: ghcr.io/kongz/piggy-env:${{ steps.version.outputs.value }},ghcr.io/kongz/piggy-env:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: piggy-env digest
@@ -64,7 +56,7 @@ jobs:
           file: ./piggy-webhooks/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: ghcr.io/kongz/piggy-webhooks:${{ steps.version.outputs.value }}
+          tags: ghcr.io/kongz/piggy-webhooks:${{ steps.version.outputs.value }},ghcr.io/kongz/piggy-webhooks:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: piggy-webhooks digest
