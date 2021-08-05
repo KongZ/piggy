@@ -1,2 +1,5 @@
 # MD001/heading-increment/header-increment - Heading levels should only increment by one level at a time
 MD001: false
+MD007:
+  # Spaces for indent
+  indent: 2
