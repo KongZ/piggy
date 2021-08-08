@@ -60,6 +60,21 @@ func awsErr(err error) bool {
 	return false
 }
 
+func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[string]string) {
+	for refName, refValue := range references {
+		if strings.HasPrefix(refValue, "piggy:") {
+			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
+			if len(match) == 1 {
+				if val, ok := secrets[match[0][1]]; ok {
+					env.append(match[0][1], val)
+					continue
+				}
+			}
+		}
+		env.append(refName, refValue)
+	}
+}
+
 func injectSecrets(references map[string]string, env *sanitizedEnv) {
 	secretName := os.Getenv("PIGGY_AWS_SECRET_NAME") // "exp/sample/test"
 	region := os.Getenv("PIGGY_AWS_REGION")          // "ap-southeast-1"
@@ -92,18 +107,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 		if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
 			log.Error().Msgf("Error while unmarshal secret %v", err)
 		}
-		for refName, refValue := range references {
-			if strings.HasPrefix(refValue, "piggy:") {
-				match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-				if len(match) == 1 {
-					if val, ok := secrets[match[0][1]]; ok {
-						env.append(match[0][1], val)
-						continue
-					}
-				}
-			}
-			env.append(refName, refValue)
-		}
+		doSanitize(references, env, secrets)
 	} else {
 		// TODO a binary secret
 		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
@@ -176,19 +180,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	if err := json.Unmarshal(body, &secrets); err != nil {
 		log.Error().Msgf("Error while translating secret %v", err)
 	}
-
-	for refName, refValue := range references {
-		if strings.HasPrefix(refValue, "piggy:") {
-			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-			if len(match) == 1 {
-				if val, ok := secrets[match[0][1]]; ok {
-					env.append(match[0][1], val)
-					continue
-				}
-			}
-		}
-		env.append(refName, refValue)
-	}
+	doSanitize(references, env, secrets)
 }
 
 func install(src, dst string) error {
