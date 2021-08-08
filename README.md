@@ -153,11 +153,16 @@ Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integr
 ### Limit secrets injection only allowed service accounts
 
 You may improve security by restrict only Pod service account to read the secrets.
-You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is service account name.
+You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is `namespace:service_account` name.
 
 The Piggy Webhooks will not inject secrets into containers if the Pod service account name is not matched with value of `PIGGY_ALLOWED_SA`.
 
-You can add multiple service account name by seperate each name with comma
+You can add multiple service account name by separate each name with comma.
+
+For example:
+```bash
+myapp-namespace:myapp,myanotherapp-namespace:default
+```
 
 ### Preventing unauthorized pods to read secrets
 

@@ -26,6 +26,12 @@ rules:
     verbs:
       - "create"
       - "update"
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
 {{- if .Values.rbac.psp.enabled }}
   - apiGroups:
       - extensions

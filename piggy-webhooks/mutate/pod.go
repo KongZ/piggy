@@ -136,14 +136,6 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 						},
 					},
 					{
-						Name: "PIGGY_POD_NAMESPACE",
-						ValueFrom: &corev1.EnvVarSource{
-							FieldRef: &corev1.ObjectFieldSelector{
-								FieldPath: "metadata.namespace",
-							},
-						},
-					},
-					{
 						Name:  "PIGGY_UID",
 						Value: uid,
 					},

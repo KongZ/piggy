@@ -32,7 +32,6 @@ type sanitizedEnv struct {
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME": true,
 	"PIGGY_AWS_REGION":      true,
-	"PIGGY_POD_NAMESPACE":   true,
 	"PIGGY_POD_NAME":        true,
 	"PIGGY_DEBUG":           true,
 	"PIGGY_STANDALONE":      true,
@@ -119,7 +118,6 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 }
 
 type GetSecretPayload struct {
-	Namespace string `json:"namespace"`
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
@@ -135,19 +133,26 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 
 	log.Debug().Msgf("Address: %s", address)
 
+	var serviceToken string
+	b, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		log.Error().Msgf("Failed to get token %v", err)
+	}
+	serviceToken = string(b)
+
 	payload := GetSecretPayload{
-		Namespace: os.Getenv("PIGGY_POD_NAMESPACE"),
 		Name:      os.Getenv("PIGGY_POD_NAME"),
 		Resources: "pods",
 		UID:       os.Getenv("PIGGY_UID"),
 		Signature: fmt.Sprintf("%x", sig),
 	}
-	b, err := json.Marshal(payload)
+	b, err = json.Marshal(payload)
 	if err != nil {
 		log.Error().Msgf("Invalid payload %v", err)
 		return
 	}
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/secret", address), bytes.NewBuffer(b))
+	req.Header.Add("X-Token", serviceToken)
 	if err != nil {
 		log.Error().Msgf("Error while creating request %v", err)
 		return
