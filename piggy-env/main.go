@@ -32,7 +32,6 @@ type sanitizedEnv struct {
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME": true,
 	"PIGGY_AWS_REGION":      true,
-	"PIGGY_POD_NAMESPACE":   true,
 	"PIGGY_POD_NAME":        true,
 	"PIGGY_DEBUG":           true,
 	"PIGGY_STANDALONE":      true,
@@ -59,6 +58,21 @@ func awsErr(err error) bool {
 		return true
 	}
 	return false
+}
+
+func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[string]string) {
+	for refName, refValue := range references {
+		if strings.HasPrefix(refValue, "piggy:") {
+			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
+			if len(match) == 1 {
+				if val, ok := secrets[match[0][1]]; ok {
+					env.append(match[0][1], val)
+					continue
+				}
+			}
+		}
+		env.append(refName, refValue)
+	}
 }
 
 func injectSecrets(references map[string]string, env *sanitizedEnv) {
@@ -93,18 +107,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 		if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
 			log.Error().Msgf("Error while unmarshal secret %v", err)
 		}
-		for refName, refValue := range references {
-			if strings.HasPrefix(refValue, "piggy:") {
-				match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-				if len(match) == 1 {
-					if val, ok := secrets[match[0][1]]; ok {
-						env.append(match[0][1], val)
-						continue
-					}
-				}
-			}
-			env.append(refName, refValue)
-		}
+		doSanitize(references, env, secrets)
 	} else {
 		// TODO a binary secret
 		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
@@ -119,7 +122,6 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 }
 
 type GetSecretPayload struct {
-	Namespace string `json:"namespace"`
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
@@ -135,19 +137,26 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 
 	log.Debug().Msgf("Address: %s", address)
 
+	var serviceToken string
+	b, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		log.Error().Msgf("Failed to get token %v", err)
+	}
+	serviceToken = string(b)
+
 	payload := GetSecretPayload{
-		Namespace: os.Getenv("PIGGY_POD_NAMESPACE"),
 		Name:      os.Getenv("PIGGY_POD_NAME"),
 		Resources: "pods",
 		UID:       os.Getenv("PIGGY_UID"),
 		Signature: fmt.Sprintf("%x", sig),
 	}
-	b, err := json.Marshal(payload)
+	b, err = json.Marshal(payload)
 	if err != nil {
 		log.Error().Msgf("Invalid payload %v", err)
 		return
 	}
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/secret", address), bytes.NewBuffer(b))
+	req.Header.Add("X-Token", serviceToken)
 	if err != nil {
 		log.Error().Msgf("Error while creating request %v", err)
 		return
@@ -171,19 +180,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	if err := json.Unmarshal(body, &secrets); err != nil {
 		log.Error().Msgf("Error while translating secret %v", err)
 	}
-
-	for refName, refValue := range references {
-		if strings.HasPrefix(refValue, "piggy:") {
-			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
-			if len(match) == 1 {
-				if val, ok := secrets[match[0][1]]; ok {
-					env.append(match[0][1], val)
-					continue
-				}
-			}
-		}
-		env.append(refName, refValue)
-	}
+	doSanitize(references, env, secrets)
 }
 
 func install(src, dst string) error {

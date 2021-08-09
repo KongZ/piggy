@@ -34,6 +34,12 @@ func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSec
 		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
 	}
 
+	serviceToken := r.Header.Get("X-Token")
+	if len(serviceToken) == 0 {
+		w.WriteHeader(http.StatusUnauthorized)
+		return nil, fmt.Errorf("token is not supplied: %v", err)
+	}
+
 	// Step 2: Parse the request.
 	var payload service.GetSecretPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -43,7 +49,7 @@ func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSec
 		w.WriteHeader(http.StatusBadRequest)
 		return nil, fmt.Errorf("malformed payload: request is nil")
 	}
-
+	payload.Token = serviceToken
 	// Serve request
 	env, err := secretFunc(&payload)
 	if err != nil {

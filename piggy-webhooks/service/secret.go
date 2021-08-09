@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,7 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"k8s.io/apimachinery/pkg/api/errors"
+	authv1 "k8s.io/api/authentication/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -21,11 +23,11 @@ import (
 type SanitizedEnv map[string]string
 
 type GetSecretPayload struct {
-	Namespace string `json:"namespace"`
 	Resources string `json:"resources"`
 	Name      string `json:"name"`
 	UID       string `json:"uid"`
 	Signature string `json:"signature"`
+	Token     string `json:"-"`
 }
 
 type Signature map[string]string
@@ -47,7 +49,6 @@ func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, 
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME": true,
 	"PIGGY_AWS_REGION":      true,
-	"PIGGY_POD_NAMESPACE":   true,
 	"PIGGY_POD_NAME":        true,
 	"PIGGY_DEBUG":           true,
 	"PIGGY_STANDALONE":      true,
@@ -145,21 +146,44 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
-	// get a pod
-	pod, err := s.k8sClient.CoreV1().Pods(payload.Namespace).Get(context.TODO(), payload.Name, metav1.GetOptions{})
+	tr := authv1.TokenReview{
+		Spec: authv1.TokenReviewSpec{
+			Token: payload.Token,
+		},
+	}
+	review, err := s.k8sClient.AuthenticationV1().TokenReviews().Create(context.TODO(), &tr, metav1.CreateOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, fmt.Errorf("pod %s not found in %s namespace", payload.Name, payload.Namespace)
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+		if statusError, isStatus := err.(*k8serrors.StatusError); isStatus {
+			return nil, fmt.Errorf("error review token %v", statusError.ErrStatus.Message)
+		}
+		return nil, err
+	}
+	if !review.Status.Authenticated {
+		return nil, errors.New("token is not authenticated")
+	}
+	fqSa := review.Status.User.Username
+	tokenSa := strings.TrimPrefix(fqSa, "system:serviceaccount:")
+	log.Debug().Msgf("request from [sa:%s], [pod:%s]", tokenSa, payload.Name)
+	namespace := strings.Split(tokenSa, ":")[0]
+	// get a pod
+	pod, err := s.k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), payload.Name, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, fmt.Errorf("pod %s not found in %s namespace", payload.Name, namespace)
+		} else if statusError, isStatus := err.(*k8serrors.StatusError); isStatus {
 			return nil, fmt.Errorf("error getting pod %v", statusError.ErrStatus.Message)
 		}
 		return nil, err
+	}
+	podSa := fmt.Sprintf("%s:%s", namespace, pod.Spec.ServiceAccountName)
+	if podSa != tokenSa {
+		return nil, fmt.Errorf("invalid service account found %s, expected %s", podSa, tokenSa)
 	}
 	annotations := pod.Annotations
 	config := &PiggyConfig{
 		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
 		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
-		PodServiceAccountName: pod.Spec.ServiceAccountName,
+		PodServiceAccountName: tokenSa,
 		PiggyEnforceIntegrity: GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
 	}
 	signature := make(Signature)
