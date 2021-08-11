@@ -303,6 +303,8 @@ pods and injecting secrets into containers
                             └───────────┘
 ```
 
+See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md)
+
 ## Annotations
 
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
