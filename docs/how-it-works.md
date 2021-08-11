@@ -98,7 +98,6 @@
 
   - Ensure that the Piggy Webhooks has a permission to read secrets from AWS Secret Manager. The AWS [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) is required
 
-
 ## Standalone mode
 
 ```bash
