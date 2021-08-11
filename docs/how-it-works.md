@@ -19,7 +19,7 @@
                             └───────────┘
 ```
 
-1) Pod is creating on Kubernetes cluster. 
+1) Pod is creating on Kubernetes cluster.
 2) The control pane manages and triggers admission webhooks
 3) The control pane sends a mutating admission webhook to Piggy Webhooks
 4) Piggy Webhooks processes request and return mutated Pod to the control pane
@@ -32,13 +32,13 @@
 5) The control pane validates object
 6) The control pane persists mutated object
 
-## Prerequisites
+## Installation prerequisites
 
   - Ensure that the Kubernetes cluster is at least as new as v1.16.
-  - Ensure that MutatingAdmissionWebhook and ValidatingAdmissionWebhook admission controllers are enabled 
+  - Ensure that MutatingAdmissionWebhook and ValidatingAdmissionWebhook admission controllers are enabled
   - Ensure that the admissionregistration.k8s.io/v1 API is enabled.
 
-# Look up mode
+## Look up mode
 
 ```bash
                 (1)  ┌───────────┐ (10)
@@ -67,6 +67,7 @@
                      │           │
                      └───────────┘
 ```
+
 1) A container is running after object has been finalized
 2) A piggy-env start sending a request to the Piggy Webhooks with the following content
 
@@ -93,12 +94,12 @@
 
 10) The piggy-env received secret key-value then replace environment variable value if variable name with prefix `piggy:`
 
-## Prerequisites
+### Lookup mode prerequisites
 
   - Ensure that the Piggy Webhooks has a permission to read secrets from AWS Secret Manager. The AWS [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) is required
 
 
-# Standalone mode
+## Standalone mode
 
 ```bash
      (1)  ┌───────────┐ (6)
@@ -126,6 +127,6 @@
 5) AWS secret manage return a secret key-value
 6) The piggy-env received secret key-value then replace environment variable value if variable name with prefix `piggy:`
 
-## Prerequisites
+### Standalone mode prerequisites
 
   - Ensure that the application Pods has a permission to read secrets from AWS Secret Manager. The AWS [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) is required
