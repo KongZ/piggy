@@ -79,7 +79,7 @@ metadata:
 
 4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
 
-## Lookup mode
+## Proxy mode
 
 This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.
 The application containers will send request to Piggy Webhooks and Piggy Webhooks will inject the secret into containers environments
