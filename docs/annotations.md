@@ -1,4 +1,4 @@
-#  Pod annotations
+# Pod annotations
 
 You can add annotations to kubernetes Pods objects to customize piggy behavior.
 
