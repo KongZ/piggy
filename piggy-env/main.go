@@ -269,7 +269,7 @@ func main() {
 		log.Debug().Msgf("Running in standalone mode")
 		injectSecrets(osEnv, &sanitized)
 	} else {
-		log.Debug().Msgf("Running in lookup mode")
+		log.Debug().Msgf("Running in proxy mode")
 		sig := strings.TrimSpace(strings.Join(cmdArgs, " "))
 		h := sha256.New()
 		h.Write([]byte(sig))

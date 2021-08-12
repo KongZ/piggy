@@ -94,7 +94,7 @@
 
 10) The piggy-env received secret key-value then replace environment variable value if variable name with prefix `piggy:`
 
-### Lookup mode prerequisites
+### proxy mode prerequisites
 
   - Ensure that the Piggy Webhooks has a permission to read secrets from AWS Secret Manager. The AWS [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) is required
 

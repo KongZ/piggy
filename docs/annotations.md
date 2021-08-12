@@ -36,7 +36,7 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
 - <a name="piggy-env-resource-cpu-limit">`piggysec.com/piggy-env-resource-cpu-limit`</a> overrides a piggy-env init-container resource CPU limit. Default to `200m`
 - <a name="piggy-env-resource-memory-limit">`piggysec.com/piggy-env-resource-memory-limit`</a> overrides a piggy-env init-container resource memory limit. Default to `64Mi`
 - <a name="piggy-psp-allow-privilege-escalation">`piggysec.com/piggy-psp-allow-privilege-escalation`</a> allow a piggy-env init-container to run as root. Default to `false`
-- <a name="piggy-address">`piggysec.com/piggy-address`</a> an endpoint of piggy-webhooks. This is required when it is running in lookup mode.
+- <a name="piggy-address">`piggysec.com/piggy-address`</a> an endpoint of piggy-webhooks. This is required when it is running in proxy mode.
 - <a name="piggy-ignore-no-env">`piggysec.com/piggy-ignore-no-env`</a> do not terminate the container if no variable found on secret manager. Default to `false`. Set this value to `false` is recommended in most application. The container will not start if environment variable is missing.
 - <a name="piggy-enforce-integrity">`piggysec.com/piggy-enforce-integrity`</a> enforce checking command integrity before inject secrets into. Default to `true`. Set this value to `true` is recommended in most application. Set to `false` will allow piggy-env to run on different arguments
 
