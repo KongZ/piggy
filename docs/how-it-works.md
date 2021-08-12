@@ -38,7 +38,7 @@
   - Ensure that MutatingAdmissionWebhook and ValidatingAdmissionWebhook admission controllers are enabled
   - Ensure that the admissionregistration.k8s.io/v1 API is enabled.
 
-## Look up mode
+## Proxy mode
 
 ```bash
                 (1)  ┌───────────┐ (10)
