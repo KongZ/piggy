@@ -62,6 +62,7 @@ func getImageConfig(ctx context.Context, config *service.PiggyConfig, client kub
 
 	if config.ImageSkipVerifyRegistry {
 		tr := &http.Transport{
+			// #nosec G402 possible self-sign
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint:gosec
 		}
 		options = append(options, remote.WithTransport(tr))

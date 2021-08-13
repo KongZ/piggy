@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -163,6 +164,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	tr := &http.Transport{
+		// #nosec G402 possible self-sign
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerifyTLS},
 	}
 	client := &http.Client{Transport: tr}
@@ -184,11 +186,15 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 }
 
 func install(src, dst string) error {
-	source, err := os.Open(src)
+	source, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer func() {
+		if err := source.Close(); err != nil {
+			log.Error().Msgf("Error closing file: %s\n", err)
+		}
+	}()
 	if fileInfo, err := os.Stat(dst); err == nil {
 		if fileInfo.IsDir() {
 			dst = dst + "/piggy-env"
@@ -198,7 +204,11 @@ func install(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() {
+		if err := destination.Close(); err != nil {
+			log.Error().Msgf("Error closing file: %s\n", err)
+		}
+	}()
 	buf := make([]byte, 1024)
 	for {
 		n, err := source.Read(buf)
@@ -212,6 +222,7 @@ func install(src, dst string) error {
 			return err
 		}
 	}
+	// #nosec G302 we need piggy-env to executable
 	if err := os.Chmod(dst, 0700); err != nil {
 		return err
 	}
@@ -272,7 +283,10 @@ func main() {
 		log.Debug().Msgf("Running in proxy mode")
 		sig := strings.TrimSpace(strings.Join(cmdArgs, " "))
 		h := sha256.New()
-		h.Write([]byte(sig))
+		_, err := h.Write([]byte(sig))
+		if err != nil {
+			log.Error().Msgf("%v", err)
+		}
 		requestSecrets(osEnv, &sanitized, h.Sum(nil))
 	}
 	ignoreNoEnv := false
@@ -293,6 +307,7 @@ func main() {
 		log.Fatal().Msgf("Command not found %s", entrypointCmd[0])
 	}
 	log.Debug().Msgf("spawning process: %s", entrypointCmd)
+	// #nosec G204 we intend to pass env to sub-process
 	err = syscall.Exec(cmd, entrypointCmd, sanitized.Env)
 	if err != nil {
 		log.Fatal().Msgf("failed to exec process %s [%s]", entrypointCmd, err.Error())

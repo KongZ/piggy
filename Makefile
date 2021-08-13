@@ -19,6 +19,13 @@ endif
 # Docker variables
 DOCKER_TAG ?= ${VERSION}
 
+# chdir
+CHDIR_SHELL := $(SHELL)
+define chdir
+   $(eval _D=$(firstword $(1) $(@D)))
+   $($(MAKE): cd $(_D)) $(eval SHELL = cd $(_D); $(CHDIR_SHELL))
+endef
+
 .PHONY: build
 build: ## Build all binaries
 	@${MAKE} build-piggy-env
@@ -26,11 +33,29 @@ build: ## Build all binaries
 
 .PHONY: build-piggy-env
 build-piggy-env: ## Build a piggy-env binary
-	@cd piggy-env && go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@$(call chdir,piggy-env)
+	@echo "\033[0;30m\n🚜 Building piggy-env..."
+	@go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@echo "\033[0;32m\n🏃‍♂️ Running Go test..."
+	@go test -race -cover -v ./...
+	@echo "\033[0;34m\n👨‍⚕️ Running Staticcheck..."
+	@staticcheck -f stylish -fail -U1000 ./...
+	@echo "\033[0;33m\n👮‍♀️ Running Gosec..."
+	@gosec ./...
+	@echo "\033[0m"
 
 .PHONY: build-piggy-webhooks
 build-piggy-webhooks: ## Build a piggy-webhooks binary
-	@cd piggy-webhooks && go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@$(call chdir,piggy-webhooks)
+	@echo "\033[0;30m\n🚜 Building piggy-webhooks..."
+	@go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@echo "\033[0;32m\n🏃‍♂️ Running Go test..."
+	@go test -race -cover -v ./...
+	@echo "\033[0;34m\n👨‍⚕️ Running Staticcheck..."
+	@staticcheck -f stylish -fail -U1000 ./...
+	@echo "\033[0;33m\n👮‍♀️ Running Gosec..."
+	@gosec ./...
+	@echo "\033[0m"
 
 .PHONY: build-debug
 build-debug: GOARGS += -gcflags "all=-N -l"

@@ -30,6 +30,14 @@ type GetSecretPayload struct {
 	Token     string `json:"-"`
 }
 
+type Info struct {
+	Resources      string `json:"resources"`
+	Name           string `json:"name"`
+	UID            string `json:"uid"`
+	Namespace      string `json:"namespace"`
+	ServiceAccount string `json:"serviceAccount"`
+}
+
 type Signature map[string]string
 
 type Service struct {
@@ -100,7 +108,11 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
 	if result.SecretString != nil {
 		var secrets map[string]string
-		json.Unmarshal([]byte(*result.SecretString), &secrets)
+		err := json.Unmarshal([]byte(*result.SecretString), &secrets)
+		if err != nil {
+			log.Error().Msgf("Unmashal error: %v", err)
+			return
+		}
 
 		allowed := false
 		if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
@@ -114,7 +126,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 				}
 			}
 		} else {
-			allowed = true
+			allowed = !config.PiggyEnforceServiceAccount
 		}
 		log.Debug().Msgf("Decision [%v]", allowed)
 		if allowed {
@@ -127,7 +139,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
 		len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
 		if err != nil {
-			log.Error().Msgf("Base64 Decode Error: %v", err)
+			log.Error().Msgf("Base64 decode error: %v", err)
 			return
 		}
 		decodedBinarySecret := string(decodedBinarySecretBytes[:len])
@@ -135,7 +147,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 	}
 }
 
-func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
+func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, error) {
 	// creates the in-cluster config
 	// config, err := rest.InClusterConfig()
 	// if err != nil {
@@ -146,6 +158,11 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
+	info := Info{
+		Resources: payload.Resources,
+		Name:      payload.Name,
+		UID:       payload.UID,
+	}
 	tr := authv1.TokenReview{
 		Spec: authv1.TokenReviewSpec{
 			Token: payload.Token,
@@ -154,37 +171,40 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	review, err := s.k8sClient.AuthenticationV1().TokenReviews().Create(context.TODO(), &tr, metav1.CreateOptions{})
 	if err != nil {
 		if statusError, isStatus := err.(*k8serrors.StatusError); isStatus {
-			return nil, fmt.Errorf("error review token %v", statusError.ErrStatus.Message)
+			return nil, info, fmt.Errorf("error review token %v", statusError.ErrStatus.Message)
 		}
-		return nil, err
+		return nil, info, err
 	}
 	if !review.Status.Authenticated {
-		return nil, errors.New("token is not authenticated")
+		return nil, info, errors.New("token is not authenticated")
 	}
 	fqSa := review.Status.User.Username
 	tokenSa := strings.TrimPrefix(fqSa, "system:serviceaccount:")
 	log.Debug().Msgf("request from [sa:%s], [pod:%s]", tokenSa, payload.Name)
 	namespace := strings.Split(tokenSa, ":")[0]
+	info.Namespace = namespace
+	info.ServiceAccount = tokenSa
 	// get a pod
 	pod, err := s.k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), payload.Name, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, fmt.Errorf("pod %s not found in %s namespace", payload.Name, namespace)
+			return nil, info, fmt.Errorf("pod %s not found in %s namespace", payload.Name, namespace)
 		} else if statusError, isStatus := err.(*k8serrors.StatusError); isStatus {
-			return nil, fmt.Errorf("error getting pod %v", statusError.ErrStatus.Message)
+			return nil, info, fmt.Errorf("error getting pod %v", statusError.ErrStatus.Message)
 		}
-		return nil, err
+		return nil, info, err
 	}
 	podSa := fmt.Sprintf("%s:%s", namespace, pod.Spec.ServiceAccountName)
 	if podSa != tokenSa {
-		return nil, fmt.Errorf("invalid service account found %s, expected %s", podSa, tokenSa)
+		return nil, info, fmt.Errorf("invalid service account found %s, expected %s", podSa, tokenSa)
 	}
 	annotations := pod.Annotations
 	config := &PiggyConfig{
-		AWSSecretName:         GetStringValue(annotations, AWSSecretName, ""),
-		AWSRegion:             GetStringValue(annotations, ConfigAWSRegion, ""),
-		PodServiceAccountName: tokenSa,
-		PiggyEnforceIntegrity: GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
+		AWSSecretName:              GetStringValue(annotations, AWSSecretName, ""),
+		AWSRegion:                  GetStringValue(annotations, ConfigAWSRegion, ""),
+		PodServiceAccountName:      tokenSa,
+		PiggyEnforceIntegrity:      GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
+		PiggyEnforceServiceAccount: GetBoolValue(EmptyMap, ConfigPiggyEnforceServiceAccount, false),
 	}
 	signature := make(Signature)
 	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {
@@ -192,13 +212,13 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, error) {
 	}
 	if config.PiggyEnforceIntegrity {
 		if signature[payload.UID] != payload.Signature {
-			return nil, fmt.Errorf("%s invalid signature", payload.Name)
+			return nil, info, fmt.Errorf("%s invalid signature", payload.Name)
 		}
 	} else if signature[payload.UID] == "" {
-		return nil, fmt.Errorf("%s invalid uid", payload.Name)
+		return nil, info, fmt.Errorf("%s invalid uid", payload.Name)
 	}
 
 	sanitized := &SanitizedEnv{}
 	injectSecrets(config, sanitized)
-	return sanitized, nil
+	return sanitized, info, nil
 }

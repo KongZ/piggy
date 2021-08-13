@@ -158,12 +158,15 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 			var args []string
 			var err error
 			if args, err = m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
-				log.Info().Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
+				log.Info().Str("pod_name", pod.Name).Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
 			}
 			// signature
 			sig := strings.TrimSpace(strings.Join(args, " "))
 			h := sha256.New()
-			h.Write([]byte(sig))
+			_, err = h.Write([]byte(sig))
+			if err != nil {
+				log.Error().Msgf("%v", err)
+			}
 			signature[uid] = fmt.Sprintf("%x", h.Sum(nil))
 		}
 		bytes, err := json.Marshal(&signature)
@@ -172,7 +175,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		}
 		pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = string(bytes)
 
-		log.Info().Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
+		log.Info().Str("pod_name", pod.Name).Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
 		return pod, nil
 	}
 	// for k, v := range pod.Annotations {

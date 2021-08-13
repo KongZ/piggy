@@ -10,60 +10,60 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type getSecretFunc func(*service.GetSecretPayload) (*service.SanitizedEnv, error)
+type getSecretFunc func(*service.GetSecretPayload) (*service.SanitizedEnv, service.Info, error)
 
-func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSecretFunc) ([]byte, error) {
+func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSecretFunc) ([]byte, service.Info, error) {
 	// Step 1: Request validation. Only handle POST requests with a body and json content type.
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, fmt.Errorf("invalid method %s, only POST requests are allowed", r.Method)
+		return nil, service.Info{}, fmt.Errorf("invalid method %s, only POST requests are allowed", r.Method)
 	}
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("only 'application/x-www-form-urlencoded' is supported")
+		return nil, service.Info{}, fmt.Errorf("only 'application/x-www-form-urlencoded' is supported")
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("could not read request body: %v", err)
+		return nil, service.Info{}, fmt.Errorf("could not read request body: %v", err)
 	}
 
 	if contentType := r.Header.Get("Content-Type"); contentType != JsonContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
+		return nil, service.Info{}, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
 	}
 
 	serviceToken := r.Header.Get("X-Token")
 	if len(serviceToken) == 0 {
 		w.WriteHeader(http.StatusUnauthorized)
-		return nil, fmt.Errorf("token is not supplied: %v", err)
+		return nil, service.Info{}, fmt.Errorf("token is not supplied: %v", err)
 	}
 
 	// Step 2: Parse the request.
 	var payload service.GetSecretPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("could not deserialize request: %v", err)
+		return nil, service.Info{}, fmt.Errorf("could not deserialize request: %v", err)
 	} else if payload.Name == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("malformed payload: request is nil")
+		return nil, service.Info{}, fmt.Errorf("malformed payload: request is nil")
 	}
 	payload.Token = serviceToken
 	// Serve request
-	env, err := secretFunc(&payload)
+	env, info, err := secretFunc(&payload)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("could not get secret: %v", err)
+		return nil, info, fmt.Errorf("could not get secret: %v", err)
 	}
 
 	// Return the secrets with a response as JSON.
 	bytes, err := json.Marshal(&env)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return nil, fmt.Errorf("marshaling response: %v", err)
+		return nil, info, fmt.Errorf("marshaling response: %v", err)
 	}
-	return bytes, nil
+	return bytes, info, nil
 }
 
 // SecretHandler retreive and return secret from secret manager
@@ -78,11 +78,11 @@ func SecretHandler(secret getSecretFunc) http.Handler {
 		log.Debug().Msgf("Handling secret request ...")
 
 		var writeErr error
-		if bytes, err := doServeSecretFunc(w, r, secret); err == nil {
-			log.Debug().Msgf("Secret request handled successfully")
+		if bytes, info, err := doServeSecretFunc(w, r, secret); err == nil {
+			log.Info().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa:%s], [pod:%s] was successful", info.ServiceAccount, info.Name)
 			_, writeErr = w.Write(bytes)
 		} else {
-			log.Error().Msgf("Error handling secret request: %v", err)
+			log.Error().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa:%s], [pod:%s] was error: %v", info.ServiceAccount, info.Name, err)
 			_, writeErr = w.Write([]byte(err.Error()))
 		}
 		if writeErr != nil {
