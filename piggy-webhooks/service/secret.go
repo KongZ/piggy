@@ -133,7 +133,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 				env.append(name, value)
 			}
 		} else {
-			return errors.New("could not get secret: decision not allowed")
+			return errors.New("decision not allowed")
 		}
 	} else {
 		// TODO a binary secret
