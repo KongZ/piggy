@@ -81,6 +81,19 @@ You can define a default AWS region by setting `AWS_REGION` environment value in
 
 4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
 
+### Default settings
+
+Some setting such as AWS region can set a default value by setting `env` in piggy webhooks helm chart value.
+Simply remove prefix `piggysec.com` from annotation, put it all in upper case, and change `-` to `_`.
+
+For example:
+
+```yaml
+env:
+  AWS_REGION: "ap-southeast-1"
+  PIGGY_ENFORCE_SERVICE_ACCOUNT: "true"
+```
+
 ## Proxy mode
 
 This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.

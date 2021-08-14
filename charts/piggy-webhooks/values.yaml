@@ -90,10 +90,10 @@ aws:
   # Specify the Role ARN for IRSA
   roleArn:
 
-# Additonal environement variable for piggy-webhooks
+# Additional environment variable for piggy-webhooks
 env: {}
   ## Set default AWS region for all secret manager
-  # AWS_REGION: "ap-southeath-1"
+  # AWS_REGION: "ap-southeast-1"
   ## Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
   # PIGGY_ENFORCE_SERVICE_ACCOUNT: "true"
 

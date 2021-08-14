@@ -79,10 +79,10 @@ func SecretHandler(secret getSecretFunc) http.Handler {
 
 		var writeErr error
 		if bytes, info, err := doServeSecretFunc(w, r, secret); err == nil {
-			log.Info().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa:%s], [pod:%s] was successful", info.ServiceAccount, info.Name)
+			log.Info().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa=%s], [pod=%s] was successful", info.ServiceAccount, info.Name)
 			_, writeErr = w.Write(bytes)
 		} else {
-			log.Error().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa:%s], [pod:%s] was error: %v", info.ServiceAccount, info.Name, err)
+			log.Error().Str("pod_name", info.Name).Str("service_account", info.ServiceAccount).Msgf("Request from [sa=%s], [pod=%s] was error: %v", info.ServiceAccount, info.Name, err)
 			_, writeErr = w.Write([]byte(err.Error()))
 		}
 		if writeErr != nil {

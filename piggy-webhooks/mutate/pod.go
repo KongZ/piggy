@@ -56,7 +56,7 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (interface{}, error) {
 	start := time.Now()
 	// Mutate pod only when it containing piggysec.com/aws-secret-name annotation
-	if config.AWSSecretName != "" {
+	if config.AWSSecretName != "" || config.PiggyAddress != "" {
 		uid := m.generateUid()
 		signature := make(Signature)
 		// pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID] = uid

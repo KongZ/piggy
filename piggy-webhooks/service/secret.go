@@ -84,13 +84,13 @@ func awsErr(err error) bool {
 	return false
 }
 
-func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
+func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a Secrets Manager client
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(config.AWSRegion),
 	})
 	if awsErr(err) {
-		return
+		return err
 	}
 	svc := secretsmanager.New(sess)
 
@@ -101,7 +101,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 
 	result, err := svc.GetSecretValue(input)
 	if awsErr(err) {
-		return
+		return err
 	}
 
 	// Decrypts secret using the associated KMS CMK.
@@ -110,8 +110,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 		var secrets map[string]string
 		err := json.Unmarshal([]byte(*result.SecretString), &secrets)
 		if err != nil {
-			log.Error().Msgf("Unmashal error: %v", err)
-			return
+			return err
 		}
 
 		allowed := false
@@ -133,18 +132,20 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) {
 			for name, value := range secrets {
 				env.append(name, value)
 			}
+		} else {
+			return errors.New("could not get secret: decision not allowed")
 		}
 	} else {
 		// TODO a binary secret
 		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
 		len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
 		if err != nil {
-			log.Error().Msgf("Base64 decode error: %v", err)
-			return
+			return err
 		}
 		decodedBinarySecret := string(decodedBinarySecretBytes[:len])
 		log.Debug().Msgf("%v", decodedBinarySecret)
 	}
+	return nil
 }
 
 func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, error) {
@@ -180,7 +181,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 	fqSa := review.Status.User.Username
 	tokenSa := strings.TrimPrefix(fqSa, "system:serviceaccount:")
-	log.Debug().Msgf("request from [sa:%s], [pod:%s]", tokenSa, payload.Name)
+	log.Debug().Msgf("request from [sa=%s], [pod=%s]", tokenSa, payload.Name)
 	namespace := strings.Split(tokenSa, ":")[0]
 	info.Namespace = namespace
 	info.ServiceAccount = tokenSa
@@ -219,6 +220,6 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 
 	sanitized := &SanitizedEnv{}
-	injectSecrets(config, sanitized)
-	return sanitized, info, nil
+	err = injectSecrets(config, sanitized)
+	return sanitized, info, err
 }
