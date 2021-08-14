@@ -9,6 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+var (
+	EmptyMap = make(map[string]string)
+)
+
 const Namespace = "piggysec.com/"
 const AWSSecretName = "aws-secret-name"                                               // AWS secret name
 const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
@@ -25,10 +29,14 @@ const ConfigPiggyUID = "piggy-uid"                                              
 const ConfigPiggyIgnoreNoEnv = "piggy-ignore-no-env"                                  // Default to false; Exit piggy-env if no environment variable found on secret manager
 const ConfigPiggyEnforceIntegrity = "piggy-enforce-integrity"                         // Default to true; Check the command integrity before run.
 const ConfigDebug = "debug"                                                           // Enable debuging log
-const ConfigImagePullSecret = "image-pull-secret"                                     // Container image pull secret
-const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"                  // Container image pull secret namespace
-const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"                    // Default to true; not verify the registry
-const ConfigStandalone = "standalone"                                                 // Default to false; use piggy-webhook to read secrets instead of pod
+// #nosec G101 it is not a credential
+const ConfigImagePullSecret = "image-pull-secret" // Container image pull secret
+// #nosec G101 it is not a credential
+const ConfigImagePullSecretNamespace = "image-pull-secret-namespace" // Container image pull secret namespace
+const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"   // Default to true; not verify the registry
+const ConfigStandalone = "standalone"                                // Default to false; use piggy-webhook to read secrets instead of pod
+// use only when injecting secrets
+const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account" // Default to false; Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
 
 type PiggyConfig struct {
 	PiggyImage                       string            `json:"piggyImage"`
@@ -50,6 +58,8 @@ type PiggyConfig struct {
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`
 	ImageSkipVerifyRegistry          bool              `json:"imageSkipVerifyRegistry"`
 	Standalone                       bool              `json:"standalone"`
+	// use only when injecting secrets
+	PiggyEnforceServiceAccount bool `json:"piggyEnforceServiceAccount"`
 	//
 	PodServiceAccountName string
 }

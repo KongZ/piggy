@@ -68,6 +68,8 @@ metadata:
     piggysec.com/aws-region: ${your-aws-secret-region} ## e.g. ap-southeast-1
 ```
 
+You can define a default AWS region by setting `AWS_REGION` environment value in Piggy Webhooks
+
 3) Add Env value with format `piggy:${name}`
 
 ```yaml
@@ -78,6 +80,19 @@ metadata:
 ```
 
 4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
+
+### Default settings
+
+Some setting such as AWS region can set a default value by setting `env` in piggy webhooks helm chart value.
+Simply remove prefix `piggysec.com` from annotation, put it all in upper case, and change `-` to `_`.
+
+For example:
+
+```yaml
+env:
+  AWS_REGION: "ap-southeast-1"
+  PIGGY_ENFORCE_SERVICE_ACCOUNT: "true"
+```
 
 ## Proxy mode
 
