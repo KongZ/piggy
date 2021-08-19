@@ -71,6 +71,8 @@ metadata:
     piggysec.com/aws-region: ${your-aws-secret-region} ## e.g. ap-southeast-1
 ```
 
+You can define a default AWS region by setting `AWS_REGION` environment value in Piggy Webhooks
+
 3) Add Env value with format `piggy:${name}`
 
 ```yaml
@@ -82,7 +84,20 @@ metadata:
 
 4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
 
-## Lookup mode
+### Default settings
+
+Some setting such as AWS region can set a default value by setting `env` in piggy webhooks helm chart value.
+Simply remove prefix `piggysec.com` from annotation, put it all in upper case, and change `-` to `_`.
+
+For example:
+
+```yaml
+env:
+  AWS_REGION: "ap-southeast-1"
+  PIGGY_ENFORCE_SERVICE_ACCOUNT: "true"
+```
+
+## Proxy mode
 
 This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.
 The application containers will send request to Piggy Webhooks and Piggy Webhooks will inject the secret into containers environments
@@ -156,11 +171,17 @@ Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integr
 ### Limit secrets injection only allowed service accounts
 
 You may improve security by restrict only Pod service account to read the secrets.
-You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is service account name.
+You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is `namespace:service_account` name.
 
 The Piggy Webhooks will not inject secrets into containers if the Pod service account name is not matched with value of `PIGGY_ALLOWED_SA`.
 
-You can add multiple service account name by seperate each name with comma
+You can add multiple service account name by separate each name with comma.
+
+For example:
+
+```bash
+myapp-namespace:myapp,myanotherapp-namespace:default
+```
 
 ### Preventing unauthorized pods to read secrets
 
@@ -299,6 +320,8 @@ pods and injecting secrets into containers
                             │           │
                             └───────────┘
 ```
+
+See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md)
 
 ## Annotations
 
