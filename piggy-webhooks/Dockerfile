@@ -6,7 +6,7 @@ ARG LDFLAGS
 ENV LDFLAGS="${LDFLAGS} -w -s -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}"
 
 # Install tools
-RUN apt update && apt -y --no-install-recommends install \
+RUN apt-get update && apt-get -y --no-install-recommends install \
     ca-certificates \
     git \
     tzdata
@@ -41,7 +41,7 @@ ARG BUILD_DATE
 LABEL VERSION=${VERSION}
 LABEL COMMIT_HASH=${COMMIT_HASH}
 LABEL BUILD_DATE=${BUILD_DATE}
-LABEL org.opencontainers.image.source https://github.com/KongZ/piggy
+LABEL org.opencontainers.image.source=https://github.com/KongZ/piggy
 
 ENV VERSION=${VERSION}
 ENV LISTEN_ADDRESS=":8080"
