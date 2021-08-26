@@ -79,6 +79,10 @@ func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, e
 		if _, _, err := UniversalDeserializer.Decode(raw, nil, &pod); err != nil {
 			return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 		}
+		// for unknown reason, object meta is missing in some cluster
+		if pod.ObjectMeta.Namespace == "" {
+			pod.ObjectMeta.Namespace = req.Namespace
+		}
 		config = m.mergeConfig(config, pod.Annotations)
 		m.registry = NewRegistry(config)
 		return m.MutatePod(config, &pod)

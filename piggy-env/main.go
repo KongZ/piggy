@@ -223,7 +223,7 @@ func install(src, dst string) error {
 		}
 	}
 	// #nosec G302 we need piggy-env to executable
-	if err := os.Chmod(dst, 0700); err != nil {
+	if err := os.Chmod(dst, 0777); err != nil {
 		return err
 	}
 	return nil

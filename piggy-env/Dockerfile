@@ -11,18 +11,6 @@ RUN apt update && apt -y --no-install-recommends install \
     git \
     tzdata
 
-# Create appuser
-ENV USER=appuser
-ENV UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    "${USER}"
-
 # Download modules
 WORKDIR /piggy-env
 COPY go.mod .
@@ -36,7 +24,7 @@ RUN go get github.com/securego/gosec/cmd/gosec
 RUN go get honnef.co/go/tools/cmd/staticcheck
 RUN CGO_ENABLED=0 go vet ./...
 RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
-RUN gosec -fmt=text -no-fail ./...
+RUN gosec -fmt=text ./...
 
 # Build executable binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
@@ -58,9 +46,7 @@ ENV VERSION=${VERSION}
 COPY --from=builder /piggy-env/piggy-env /piggy-env
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /etc/group /etc/group
 
-# Use an unprivileged user.
-USER appuser:appuser
+# Use an unprivileged user. Don't use named user to avoid PSP error
+USER 10001
 ENTRYPOINT ["/piggy-env"]
