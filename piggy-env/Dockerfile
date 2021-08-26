@@ -9,7 +9,8 @@ ENV LDFLAGS="${LDFLAGS} -w -X main.version=${VERSION} -X main.commitHash=${COMMI
 RUN apt-get update && apt-get -y --no-install-recommends install \
     ca-certificates \
     git \
-    tzdata
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download modules
 WORKDIR /piggy-env
