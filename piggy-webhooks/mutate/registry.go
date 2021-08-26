@@ -101,6 +101,7 @@ func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.Pigg
 		ServiceAccountName: podSpec.ServiceAccountName,
 		Image:              container.Image,
 	}
+	log.Debug().Msgf("Container info %+v", containerInfo)
 	if config.ImagePullSecretNamespace != "" {
 		containerInfo.Namespace = config.ImagePullSecretNamespace
 	}
