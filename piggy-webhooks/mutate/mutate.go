@@ -10,6 +10,7 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,6 +70,22 @@ func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[stri
 	return config
 }
 
+func (m *Mutating) getDataFromConfigmap(configMapName string, ns string) (map[string]string, error) {
+	configMap, err := m.k8sClient.CoreV1().ConfigMaps(ns).Get(context.Background(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return configMap.Data, nil
+}
+
+func (m *Mutating) getDataFromSecret(secretName string, ns string) (map[string][]byte, error) {
+	secret, err := m.k8sClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret.Data, nil
+}
+
 // ApplyPiggy handle adminssion request and apply piggy to pod
 func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, error) {
 	config := &service.PiggyConfig{}
@@ -86,6 +103,45 @@ func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, e
 		config = m.mergeConfig(config, pod.Annotations)
 		m.registry = NewRegistry(config)
 		return m.MutatePod(config, &pod)
+	}
+	return nil, nil
+}
+
+// LookForValueFrom look up value from reference
+func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVar, error) {
+	if env.ValueFrom.ConfigMapKeyRef != nil {
+		data, err := m.getDataFromConfigmap(env.ValueFrom.ConfigMapKeyRef.Name, ns)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		value := data[env.ValueFrom.ConfigMapKeyRef.Key]
+		if strings.HasPrefix(env.Value, "piggy:") {
+			fromCM := corev1.EnvVar{
+				Name:  env.Name,
+				Value: value,
+			}
+			return &fromCM, nil
+		}
+	}
+	if env.ValueFrom.SecretKeyRef != nil {
+		data, err := m.getDataFromSecret(env.ValueFrom.SecretKeyRef.Name, ns)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		value := string(data[env.ValueFrom.SecretKeyRef.Key])
+		if strings.HasPrefix(env.Value, "piggy:") {
+			fromSecret := corev1.EnvVar{
+				Name:  env.Name,
+				Value: value,
+			}
+			return &fromSecret, nil
+		}
 	}
 	return nil, nil
 }
