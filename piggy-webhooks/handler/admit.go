@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/KongZ/piggy/piggy-webhooks/mutate"
-	"github.com/mattbaird/jsonpatch"
 	"github.com/rs/zerolog/log"
+	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
