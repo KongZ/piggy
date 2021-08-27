@@ -201,7 +201,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 	annotations := pod.Annotations
 	config := &PiggyConfig{
-		AWSSecretName:              GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s:%s", namespace, tokenSa)),
+		AWSSecretName:              GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s/%s", namespace, tokenSa)),
 		AWSRegion:                  GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName:      tokenSa,
 		PiggyEnforceIntegrity:      GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
