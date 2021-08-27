@@ -94,7 +94,28 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		})
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Mutating containers ...")
 		for i := range pod.Spec.Containers {
-			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying env '%s' containers ...", pod.Spec.Containers[i].Name)
+			mutate := false
+			for _, env := range pod.Spec.Containers[i].Env {
+				if strings.HasPrefix(env.Value, "piggy:") {
+					mutate = true
+					break
+				}
+				if env.ValueFrom != nil {
+					valueFrom, err := m.LookForValueFrom(env, pod.ObjectMeta.Namespace)
+					if err != nil {
+						return nil, fmt.Errorf("unable to read valueFrom: %v", err)
+					}
+					if valueFrom != nil {
+						mutate = true
+						break
+					}
+				}
+			}
+			if !mutate {
+				log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Skip mutating '%s' container ...", pod.Spec.Containers[i].Name)
+				continue
+			}
+			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying env '%s' container ...", pod.Spec.Containers[i].Name)
 			pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
 				{
 					Name:  "PIGGY_AWS_SECRET_NAME",
