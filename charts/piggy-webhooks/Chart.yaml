@@ -11,3 +11,7 @@ sources:
 maintainers:
   - name: KongZ
     email: goonohc@gmail.com
+keywords:
+  - aws
+  - eks
+  - secret manager
