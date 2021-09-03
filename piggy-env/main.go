@@ -67,7 +67,7 @@ func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[str
 			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
 			if len(match) == 1 {
 				if val, ok := secrets[match[0][1]]; ok {
-					env.append(match[0][1], val)
+					env.append(refName, val)
 					continue
 				}
 			}
