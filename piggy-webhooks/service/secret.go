@@ -181,7 +181,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 	fqSa := review.Status.User.Username
 	tokenSa := strings.TrimPrefix(fqSa, "system:serviceaccount:")
-	log.Debug().Msgf("request from [sa=%s], [pod=%s]", tokenSa, payload.Name)
+	log.Debug().Msgf("Request from [sa=%s], [pod=%s]", tokenSa, payload.Name)
 	namespace := strings.Split(tokenSa, ":")[0]
 	info.Namespace = namespace
 	info.ServiceAccount = tokenSa
@@ -201,7 +201,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 	annotations := pod.Annotations
 	config := &PiggyConfig{
-		AWSSecretName:              GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s/%s", namespace, tokenSa)),
+		AWSSecretName:              GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s/%s", namespace, pod.Spec.ServiceAccountName)),
 		AWSRegion:                  GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName:      tokenSa,
 		PiggyEnforceIntegrity:      GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
