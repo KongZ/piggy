@@ -22,6 +22,10 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+      - name: Get version
+        id: version
+        run: |
+          echo ::set-output name=value::"${GITHUB_REF#refs/tags/}"
       - name: Login to ghcr
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v1
