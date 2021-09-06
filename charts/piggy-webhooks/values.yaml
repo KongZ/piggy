@@ -107,7 +107,7 @@ mutate:
         size: 256
     generate: true
     # if certManager.use = true OR generate=true, set the certificate validity (days)
-    certValidity: 365
+    certValidity: 3650
     tls:
       crt:
       key:
