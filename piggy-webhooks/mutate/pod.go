@@ -57,7 +57,6 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 	start := time.Now()
 	// Mutate pod only when it containing piggysec.com/aws-secret-name annotation
 	if config.AWSSecretName != "" || config.PiggyAddress != "" {
-		uid := m.generateUid()
 		signature := make(Signature)
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Adding volumes to podspec ...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
@@ -115,6 +114,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 				log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Skip mutating '%s' container ...", pod.Spec.Containers[i].Name)
 				continue
 			}
+			uid := m.generateUid()
 			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying env '%s' container ...", pod.Spec.Containers[i].Name)
 			pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
 				{
