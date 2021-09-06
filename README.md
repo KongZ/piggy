@@ -1,5 +1,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Action](https://github.com/KongZ/piggy/workflows/Build%20to%20GHCR/badge.svg?branch=main)](https://github.com/KongZ/piggy/actions)
+[![CodeQL](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/piggy)](https://artifacthub.io/packages/search?repo=piggy)
 
 ![piggy logo](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png "Piggy Logo")
