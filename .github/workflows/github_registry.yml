@@ -61,3 +61,17 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: piggy-webhooks digest
         run: echo ${{ steps.docker_piggy-webhooks.outputs.digest }}
+      - name: CR - Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: CR - Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+      - name: CR - Run chart-releaser
+        uses: helm/chart-releaser-action@v1.2.1
+        with:
+          charts_dir: charts
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
