@@ -30,7 +30,6 @@ podAnnotations: {}
 
 podSecurityContext:
   runAsUser: 10001
-  readOnlyRootFilesystem: true
 
 securityContext: {}
   # capabilities:
