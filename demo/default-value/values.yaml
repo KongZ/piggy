@@ -1,0 +1,7 @@
+aws:
+  roleArn: arn:aws:iam::123456789:role/piggy-webhooks
+
+env:
+  AWS_REGION: "ap-southeast-1"
+  PIGGY_DEFAULT_SECRET_NAME_PREFIX: ""
+  PIGGY_DEFAULT_SECRET_NAME_SUFFIX: "/test"

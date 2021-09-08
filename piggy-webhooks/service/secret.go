@@ -55,15 +55,17 @@ func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, 
 }
 
 var sanitizeEnvmap = map[string]bool{
-	"PIGGY_AWS_SECRET_NAME": true,
-	"PIGGY_AWS_REGION":      true,
-	"PIGGY_POD_NAME":        true,
-	"PIGGY_DEBUG":           true,
-	"PIGGY_STANDALONE":      true,
-	"PIGGY_ADDRESS":         true,
-	"PIGGY_ALLOWED_SA":      true,
-	"PIGGY_SKIP_VERIFY_TLS": true,
-	"PIGGY_IGNORE_NO_ENV":   true,
+	"PIGGY_AWS_SECRET_NAME":            true,
+	"PIGGY_AWS_REGION":                 true,
+	"PIGGY_POD_NAME":                   true,
+	"PIGGY_DEBUG":                      true,
+	"PIGGY_STANDALONE":                 true,
+	"PIGGY_ADDRESS":                    true,
+	"PIGGY_ALLOWED_SA":                 true,
+	"PIGGY_SKIP_VERIFY_TLS":            true,
+	"PIGGY_IGNORE_NO_ENV":              true,
+	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true,
+	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true,
 }
 
 func (e *SanitizedEnv) append(name string, value string) {
@@ -200,12 +202,16 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 		return nil, info, fmt.Errorf("invalid service account found %s, expected %s", podSa, tokenSa)
 	}
 	annotations := pod.Annotations
+	defaultPrefix := GetStringValue(annotations, ConfigPiggyDefaultSecretNamePrefix, "")
+	defaultSuffix := GetStringValue(annotations, ConfigPiggyDefaultSecretNameSuffix, "")
 	config := &PiggyConfig{
-		AWSSecretName:              GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s/%s", namespace, pod.Spec.ServiceAccountName)),
-		AWSRegion:                  GetStringValue(annotations, ConfigAWSRegion, ""),
-		PodServiceAccountName:      tokenSa,
-		PiggyEnforceIntegrity:      GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
-		PiggyEnforceServiceAccount: GetBoolValue(EmptyMap, ConfigPiggyEnforceServiceAccount, false),
+		AWSSecretName:                GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s%s/%s%s", defaultPrefix, namespace, pod.Spec.ServiceAccountName, defaultSuffix)),
+		AWSRegion:                    GetStringValue(annotations, ConfigAWSRegion, ""),
+		PodServiceAccountName:        tokenSa,
+		PiggyEnforceIntegrity:        GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
+		PiggyEnforceServiceAccount:   GetBoolValue(EmptyMap, ConfigPiggyEnforceServiceAccount, false),
+		PiggyDefaultSecretNamePrefix: defaultPrefix,
+		PiggyDefaultSecretNameSuffix: defaultSuffix,
 	}
 	signature := make(Signature)
 	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {

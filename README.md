@@ -183,13 +183,32 @@ myapp-namespace:myapp,myanotherapp-namespace:default
 
 ### Preventing unauthorized pods to read secrets
 
-The Piggy provides 3 cencepts to protect secrets.
+The Piggy provides 3 concepts to protect secrets.
 
   - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
   Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
   For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
   - Piggy will generate a UID for each containers during mutation process. If the requests from container is not matched the UID which was generated, it will reject.
-  - Uses [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrests by service account name
+  - Uses [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrets by service account name
+
+### Default secret name
+
+You can set the secret name from annotation `piggysec.com/aws-secret-name` but in proxy mode, you can remove this annotation.
+The Piggy Webhooks will read secrets from default secret name which format is `${prefix}${namespace}/${service_account}${suffix}`
+
+For example, if you do not set prefix and suffix, the default secret name of Pods which service account name `default` and namespace `demo` is `demo/default`
+
+You can optionally set prefix of default secret name by set ENV `PIGGY_DEFAULT_SECRET_NAME_PREFIX` on Piggy Webhooks and suffix by set ENV `PIGGY_DEFAULT_SECRET_NAME_SUFFIX`
+
+For example, if `PIGGY_DEFAULT_SECRET_NAME_SUFFIX=/production`, the default secret name of sample above will be `/demo/default/production`
+
+You can see examples at [https://github.com/KongZ/piggy/tree/main/demo]
+
+### Default AWS Region
+
+You can set default AWS Region by set ENV `AWS_REGION` on Piggy Webhooks. If `AWS_REGION` is set on Piggy Webhooks, you do not need to set an annotation `piggysec.com/aws-region` on Pod. In other word, the settings on Piggy Webhooks ENV can be overridden by pods annotations.
+
+You can see examples at [https://github.com/KongZ/piggy/tree/main/demo]
 
 ## Standalone mode
 
