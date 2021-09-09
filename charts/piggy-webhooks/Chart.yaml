@@ -2,8 +2,8 @@ apiVersion: v2
 name: piggy-webhooks
 description: Deploys a piggy-webhooks that inject enviroment variaiables from AWS Secret Manager
 type: application
-version: 0.2.2
-appVersion: "0.2.0"
+version: 0.2.3
+appVersion: "0.2.3"
 home: https://piggysec.com
 icon: https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png
 sources:

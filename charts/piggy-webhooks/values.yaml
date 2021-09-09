@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.2.0"
+  tag: "0.2.3"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -96,6 +96,10 @@ env: {}
   # AWS_REGION: "ap-southeast-1"
   ## Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
   # PIGGY_ENFORCE_SERVICE_ACCOUNT: "true"
+  ## Set default secret name prefix. If set the default secret name will be `${prefix}${namespace}/${sa}`
+  # PIGGY_DEFAULT_SECRET_NAME_PREFIX: ""
+  ## Set default secret name suffix. If set the default secret name will be `${namespace}/${sa}${suffix}`
+  # PIGGY_DEFAULT_SECRET_NAME_SUFFIX: ""
 
 mutate:
   certificate:
@@ -117,6 +121,6 @@ mutate:
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "0.2.0"
+    tag: "0.2.3"
 
 debug: false
