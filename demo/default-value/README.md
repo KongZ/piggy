@@ -24,4 +24,3 @@ helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks -f values.
 ```
 
 ![default-secret-name](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/secret-name-default-value.png "default-secret-name")
-
