@@ -19,7 +19,7 @@ env:
   PIGGY_DEFAULT_SECRET_NAME_SUFFIX: "/test"
 ```
 
-```
+```bash
 helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks -f values.yaml
 ```
 
