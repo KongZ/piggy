@@ -31,15 +31,17 @@ type sanitizedEnv struct {
 }
 
 var sanitizeEnvmap = map[string]bool{
-	"PIGGY_AWS_SECRET_NAME": true,
-	"PIGGY_AWS_REGION":      true,
-	"PIGGY_POD_NAME":        true,
-	"PIGGY_DEBUG":           true,
-	"PIGGY_STANDALONE":      true,
-	"PIGGY_ADDRESS":         true,
-	"PIGGY_ALLOWED_SA":      true,
-	"PIGGY_SKIP_VERIFY_TLS": true,
-	"PIGGY_IGNORE_NO_ENV":   true,
+	"PIGGY_AWS_SECRET_NAME":            true,
+	"PIGGY_AWS_REGION":                 true,
+	"PIGGY_POD_NAME":                   true,
+	"PIGGY_DEBUG":                      true,
+	"PIGGY_STANDALONE":                 true,
+	"PIGGY_ADDRESS":                    true,
+	"PIGGY_ALLOWED_SA":                 true,
+	"PIGGY_SKIP_VERIFY_TLS":            true,
+	"PIGGY_IGNORE_NO_ENV":              true,
+	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true,
+	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true,
 }
 var schemeRegx = regexp.MustCompile(`piggy:(.+)`)
 

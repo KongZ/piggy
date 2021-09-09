@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: demo
+  name: demo
+  annotations:
+    piggysec.com/piggy-address: https://piggy-webhooks.piggy-webhooks.svc.cluster.local
+spec:
+  serviceAccountName: sample
+  containers:
+    - image: ghcr.io/kongz/piggy-demo:latest
+      name: demo
+      env:
+        - name: TEST_ENV
+          value: piggy:TEST_ENV
+      resources:
+        limits:
+          memory: "64Mi"
+          cpu: "200m"
