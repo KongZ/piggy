@@ -52,6 +52,103 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 	return entry, nil
 }
 
+func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) (string, error) {
+	mutate := false
+	for _, env := range container.Env {
+		if strings.HasPrefix(env.Value, "piggy:") {
+			mutate = true
+			break
+		}
+		if env.ValueFrom != nil {
+			valueFrom, err := m.LookForValueFrom(env, pod.ObjectMeta.Namespace)
+			if err != nil {
+				return "", fmt.Errorf("unable to read valueFrom: %v", err)
+			}
+			if valueFrom != nil {
+				mutate = true
+				break
+			}
+		}
+	}
+	if !mutate {
+		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Skip mutating '%s' container ...", container.Name)
+		return "", nil
+	}
+	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying env '%s' container ...", container.Name)
+	container.Env = append(container.Env, []corev1.EnvVar{
+		{
+			Name:  "PIGGY_AWS_SECRET_NAME",
+			Value: config.AWSSecretName,
+		},
+		{
+			Name:  "PIGGY_AWS_REGION",
+			Value: config.AWSRegion,
+		},
+	}...)
+	if config.Debug {
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_DEBUG",
+				Value: "true",
+			},
+		}...)
+	}
+	if config.Standalone {
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_STANDALONE",
+				Value: "true",
+			},
+		}...)
+	} else if config.PiggyAddress != "" {
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_ADDRESS",
+				Value: config.PiggyAddress,
+			},
+			{
+				Name: "PIGGY_POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+			{
+				Name:  "PIGGY_UID",
+				Value: uid,
+			},
+		}...)
+	}
+	if config.PiggyIgnoreNoEnv {
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_IGNORE_NO_ENV",
+				Value: "true",
+			},
+		}...)
+	}
+	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying volume mounts '%s' containers ...", container.Name)
+	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+		Name:      "piggy-env",
+		MountPath: "/piggy/",
+	})
+	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying command '%s' containers ...", container.Name)
+	var args []string
+	var err error
+	if args, err = m.mutateCommand(config, container, pod); err != nil {
+		log.Info().Str("namespace", pod.ObjectMeta.Namespace).Str("pod_name", pod.ObjectMeta.Name).Msgf("Error while mutating '%s' container command [%v]", container.Name, err)
+	}
+	// signature
+	sig := strings.TrimSpace(strings.Join(args, " "))
+	h := sha256.New()
+	_, err = h.Write([]byte(sig))
+	if err != nil {
+		log.Error().Msgf("%v", err)
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
 // MutatePod mutate pod
 func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (interface{}, error) {
 	start := time.Now()
@@ -67,8 +164,18 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 				},
 			},
 		})
-		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Adding init-containers to podspec ...")
-		pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
+		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Mutating init-containers ...")
+		for i := range pod.Spec.InitContainers {
+			var err error
+			uid := m.generateUid()
+			signature[uid], err = m.mutateContainer(uid, config, &pod.Spec.InitContainers[i], pod)
+			if err != nil {
+				return nil, err
+			}
+		}
+		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Inserting init-container to podspec ...")
+		initContainers := make([]corev1.Container, len(pod.Spec.InitContainers)+1)
+		initContainers[0] = corev1.Container{
 			Name:            "install-piggy-env",
 			Image:           config.PiggyImage,
 			ImagePullPolicy: config.PiggyImagePullPolicy,
@@ -90,104 +197,17 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 					corev1.ResourceMemory: config.PiggyResourceMemoryRequest,
 				},
 			},
-		})
+		}
+		copy(initContainers[1:], pod.Spec.InitContainers)
+		pod.Spec.InitContainers = initContainers
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Mutating containers ...")
 		for i := range pod.Spec.Containers {
-			mutate := false
-			for _, env := range pod.Spec.Containers[i].Env {
-				if strings.HasPrefix(env.Value, "piggy:") {
-					mutate = true
-					break
-				}
-				if env.ValueFrom != nil {
-					valueFrom, err := m.LookForValueFrom(env, pod.ObjectMeta.Namespace)
-					if err != nil {
-						return nil, fmt.Errorf("unable to read valueFrom: %v", err)
-					}
-					if valueFrom != nil {
-						mutate = true
-						break
-					}
-				}
-			}
-			if !mutate {
-				log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Skip mutating '%s' container ...", pod.Spec.Containers[i].Name)
-				continue
-			}
-			uid := m.generateUid()
-			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying env '%s' container ...", pod.Spec.Containers[i].Name)
-			pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
-				{
-					Name:  "PIGGY_AWS_SECRET_NAME",
-					Value: config.AWSSecretName,
-				},
-				{
-					Name:  "PIGGY_AWS_REGION",
-					Value: config.AWSRegion,
-				},
-			}...)
-			if config.Debug {
-				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
-					{
-						Name:  "PIGGY_DEBUG",
-						Value: "true",
-					},
-				}...)
-			}
-			if config.Standalone {
-				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
-					{
-						Name:  "PIGGY_STANDALONE",
-						Value: "true",
-					},
-				}...)
-			} else if config.PiggyAddress != "" {
-				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
-					{
-						Name:  "PIGGY_ADDRESS",
-						Value: config.PiggyAddress,
-					},
-					{
-						Name: "PIGGY_POD_NAME",
-						ValueFrom: &corev1.EnvVarSource{
-							FieldRef: &corev1.ObjectFieldSelector{
-								FieldPath: "metadata.name",
-							},
-						},
-					},
-					{
-						Name:  "PIGGY_UID",
-						Value: uid,
-					},
-				}...)
-			}
-			if config.PiggyIgnoreNoEnv {
-				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, []corev1.EnvVar{
-					{
-						Name:  "PIGGY_IGNORE_NO_ENV",
-						Value: "true",
-					},
-				}...)
-			}
-			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying volume mounts '%s' containers ...", pod.Spec.Containers[i].Name)
-			pod.Spec.Containers[i].VolumeMounts = append(pod.Spec.Containers[i].VolumeMounts, corev1.VolumeMount{
-				Name:      "piggy-env",
-				MountPath: "/piggy/",
-			})
-			log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying command '%s' containers ...", pod.Spec.Containers[i].Name)
-			var args []string
 			var err error
-			if args, err = m.mutateCommand(config, &pod.Spec.Containers[i], pod); err != nil {
-				log.Info().Str("namespace", pod.ObjectMeta.Namespace).Str("pod_name", pod.ObjectMeta.Name).Msgf("Error while mutating '%s' container command [%v]", pod.Spec.Containers[i].Name, err)
-			}
-			// signature
-			sig := strings.TrimSpace(strings.Join(args, " "))
-			h := sha256.New()
-			_, err = h.Write([]byte(sig))
+			uid := m.generateUid()
+			signature[uid], err = m.mutateContainer(uid, config, &pod.Spec.Containers[i], pod)
 			if err != nil {
-				log.Error().Msgf("%v", err)
+				return nil, err
 			}
-			signature[uid] = fmt.Sprintf("%x", h.Sum(nil))
 		}
 		bytes, err := json.Marshal(&signature)
 		if err != nil {
@@ -203,8 +223,5 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		}
 		return pod, nil
 	}
-	// for k, v := range pod.Annotations {
-	// 	log.Info().Msgf("%s=%s", k, v)
-	// }
 	return nil, nil
 }

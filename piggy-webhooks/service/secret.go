@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,6 +35,7 @@ type Info struct {
 	UID            string `json:"uid"`
 	Namespace      string `json:"namespace"`
 	ServiceAccount string `json:"serviceAccount"`
+	SecretName     string `json:"secretName"`
 }
 
 type Signature map[string]string
@@ -138,14 +138,14 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 			return errors.New("decision not allowed")
 		}
 	} else {
-		// TODO a binary secret
-		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
-		len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
-		if err != nil {
-			return err
-		}
-		decodedBinarySecret := string(decodedBinarySecretBytes[:len])
-		log.Debug().Msgf("%v", decodedBinarySecret)
+		// TODO how to mount a binary secret into ENV?
+		log.Info().Msgf("A binary secret is not supported yet")
+		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
+		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
+		// if err != nil {
+		// 	return err
+		// }
+		// decodedBinarySecret := string(decodedBinarySecretBytes[:len])
 	}
 	return nil
 }
@@ -213,6 +213,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 		PiggyDefaultSecretNamePrefix: defaultPrefix,
 		PiggyDefaultSecretNameSuffix: defaultSuffix,
 	}
+	info.SecretName = config.AWSSecretName
 	signature := make(Signature)
 	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {
 		log.Error().Msgf("Error while unmarshal signature %v", err)
