@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.2.3"
+  tag: "0.2.5"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -30,6 +30,7 @@ podAnnotations: {}
 
 podSecurityContext:
   runAsUser: 10001
+  fsGroup: 65534
 
 securityContext: {}
   # capabilities:
@@ -121,6 +122,6 @@ mutate:
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "0.2.3"
+    tag: "0.2.5"
 
 debug: false
