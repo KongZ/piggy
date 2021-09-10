@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -112,15 +111,15 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 		}
 		doSanitize(references, env, secrets)
 	} else {
-		// TODO a binary secret
-		decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
-		len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
-		if err != nil {
-			log.Error().Msgf("Base64 Decode Error: %v", err)
-			return
-		}
-		decodedBinarySecret := string(decodedBinarySecretBytes[:len])
-		log.Debug().Msgf("%v", decodedBinarySecret)
+		// TODO how to mount a binary secret into ENV?
+		log.Info().Msgf("A binary secret is not supported yet")
+		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
+		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
+		// if err != nil {
+		// 	log.Error().Msgf("Base64 Decode Error: %v", err)
+		// 	return
+		// }
+		// decodedBinarySecret := string(decodedBinarySecretBytes[:len])
 	}
 }
 
