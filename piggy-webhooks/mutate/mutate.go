@@ -107,7 +107,7 @@ func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, e
 	return nil, nil
 }
 
-// LookForValueFrom look up value from reference
+// LookForValueFrom look up value from valueFrom
 func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVar, error) {
 	if env.ValueFrom.ConfigMapKeyRef != nil {
 		data, err := m.getDataFromConfigmap(env.ValueFrom.ConfigMapKeyRef.Name, ns)
@@ -144,4 +144,52 @@ func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVa
 		}
 	}
 	return nil, nil
+}
+
+// LookForEnvFrom look up value from envFrom
+func (mw *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([]corev1.EnvVar, error) {
+	var envVars []corev1.EnvVar
+
+	for _, ef := range envFrom {
+		if ef.ConfigMapRef != nil {
+			data, err := mw.getDataFromConfigmap(ef.ConfigMapRef.Name, ns)
+			if err != nil {
+				if apierrors.IsNotFound(err) || (ef.ConfigMapRef.Optional != nil && *ef.ConfigMapRef.Optional) {
+					continue
+				} else {
+					return envVars, err
+				}
+			}
+			for key, value := range data {
+				if strings.HasPrefix(value, "piggy:") {
+					fromCM := corev1.EnvVar{
+						Name:  key,
+						Value: value,
+					}
+					envVars = append(envVars, fromCM)
+				}
+			}
+		}
+		if ef.SecretRef != nil {
+			data, err := mw.getDataFromSecret(ef.SecretRef.Name, ns)
+			if err != nil {
+				if apierrors.IsNotFound(err) || (ef.SecretRef.Optional != nil && *ef.SecretRef.Optional) {
+					continue
+				} else {
+					return envVars, err
+				}
+			}
+			for key, v := range data {
+				value := string(v)
+				if strings.HasPrefix(value, "piggy:") {
+					fromSecret := corev1.EnvVar{
+						Name:  key,
+						Value: value,
+					}
+					envVars = append(envVars, fromSecret)
+				}
+			}
+		}
+	}
+	return envVars, nil
 }

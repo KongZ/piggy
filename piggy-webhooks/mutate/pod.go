@@ -54,20 +54,31 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 
 func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) (string, error) {
 	mutate := false
-	for _, env := range container.Env {
-		if strings.HasPrefix(env.Value, "piggy:") {
-			mutate = true
-			break
+	var envVars []corev1.EnvVar
+	if len(container.EnvFrom) > 0 {
+		envFrom, err := m.LookForEnvFrom(container.EnvFrom, pod.ObjectMeta.Namespace)
+		if err != nil {
+			return "", fmt.Errorf("unable to read envFrom: %v", err)
 		}
+		envVars = append(envVars, envFrom...)
+	}
+	for _, env := range container.Env {
 		if env.ValueFrom != nil {
 			valueFrom, err := m.LookForValueFrom(env, pod.ObjectMeta.Namespace)
 			if err != nil {
 				return "", fmt.Errorf("unable to read valueFrom: %v", err)
 			}
 			if valueFrom != nil {
-				mutate = true
-				break
+				envVars = append(envVars, *valueFrom)
 			}
+		} else {
+			envVars = append(envVars, env)
+		}
+	}
+	for _, env := range envVars {
+		if strings.HasPrefix(env.Value, "piggy:") {
+			mutate = true
+			break
 		}
 	}
 	if !mutate {
@@ -175,6 +186,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		}
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Inserting init-container to podspec ...")
 		initContainers := make([]corev1.Container, len(pod.Spec.InitContainers)+1)
+		copy(initContainers[1:], pod.Spec.InitContainers)
 		initContainers[0] = corev1.Container{
 			Name:            "install-piggy-env",
 			Image:           config.PiggyImage,
@@ -198,7 +210,6 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 				},
 			},
 		}
-		copy(initContainers[1:], pod.Spec.InitContainers)
 		pod.Spec.InitContainers = initContainers
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Mutating containers ...")
 		for i := range pod.Spec.Containers {
