@@ -194,7 +194,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 					d := net.Dialer{}
-					return d.DialContext(ctx, "tcp", "")
+					return d.DialContext(ctx, dnsResolver, "")
 				},
 			},
 		}
