@@ -1,4 +1,4 @@
-FROM golang:1.16.5-buster as builder
+FROM golang:1.17.1-buster as builder
 ARG VERSION
 ARG COMMIT_HASH
 ARG BUILD_DATE

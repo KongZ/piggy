@@ -35,6 +35,8 @@ const ConfigImagePullSecret = "image-pull-secret" // Container image pull secret
 const ConfigImagePullSecretNamespace = "image-pull-secret-namespace" // Container image pull secret namespace
 const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"   // Default to true; not verify the registry
 const ConfigStandalone = "standalone"                                // Default to false; use piggy-webhook to read secrets instead of pod
+const ConfigPiggyDNSResolver = "piggy-dns-resolver"                  // Default to ""; Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
+const ConfigPiggyDelaySecond = "piggy-delay-second"                  // Default to 0; Delay in seconds before requesting secret from piggy-webhooks or secret-manager
 // use only when injecting secrets
 const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account"      // Default to false; Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
 const ConfigPiggyDefaultSecretNamePrefix = "piggy-default-secret-name-prefix" // Default to ""; Set default prefix string for secret name
@@ -60,6 +62,8 @@ type PiggyConfig struct {
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`
 	ImageSkipVerifyRegistry          bool              `json:"imageSkipVerifyRegistry"`
 	Standalone                       bool              `json:"standalone"`
+	PiggyDNSResolver                 string            `json:"piggyDNSResolver"`
+	PiggyDelaySecond                 int               `json:"piggyDelaySecond"`
 	// use only when injecting secrets
 	PiggyEnforceServiceAccount   bool   `json:"piggyEnforceServiceAccount"`
 	PiggyDefaultSecretNamePrefix string `json:"piggyDefaultSecretNamePrefix"`
@@ -87,6 +91,19 @@ func GetEnvBool(name string, defaultValue bool) bool {
 	return b
 }
 
+// GetEnvInt get environment value as int or return default value if not found
+func GetEnvInt(name string, defaultValue int) int {
+	val := os.Getenv(name)
+	if val == "" {
+		return defaultValue
+	}
+	b, err := strconv.ParseInt(val, 10, 0)
+	if err != nil {
+		return defaultValue
+	}
+	return int(b)
+}
+
 // GetStringValue get a string value from annotation map
 func GetStringValue(annotations map[string]string, name string, defaultValue string) string {
 	if val, ok := annotations[Namespace+name]; ok {
@@ -104,4 +121,17 @@ func GetBoolValue(annotations map[string]string, name string, defaultValue bool)
 	}
 	envName := strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
 	return GetEnvBool(envName, defaultValue)
+}
+
+// GetIntValue get a int value from annotation map
+func GetIntValue(annotations map[string]string, name string, defaultValue int) int {
+	if val, ok := annotations[Namespace+name]; ok {
+		b, err := strconv.ParseInt(val, 10, 0)
+		if err != nil {
+			return defaultValue
+		}
+		return int(b)
+	}
+	envName := strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
+	return GetEnvInt(envName, defaultValue)
 }

@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -39,9 +42,27 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_ALLOWED_SA":                 true,
 	"PIGGY_SKIP_VERIFY_TLS":            true,
 	"PIGGY_IGNORE_NO_ENV":              true,
-	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true,
-	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true,
+	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true, // use before secret
+	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true, // use before secret
+	"PIGGY_DNS_RESOLVER":               true, // use before secret
+	"PIGGY_DELAY_SECOND":               true, // use before secret
 }
+
+var golangNetwork = map[string]bool{
+	"tcp":        true,
+	"tcp4":       true,
+	"tcp6":       true,
+	"udp":        true,
+	"udp4":       true,
+	"udp6":       true,
+	"ip":         true,
+	"ip4":        true,
+	"ip6":        true,
+	"unix":       true,
+	"unixgram":   true,
+	"unixpacket": true,
+}
+
 var schemeRegx = regexp.MustCompile(`piggy:(.+)`)
 
 func (e *sanitizedEnv) append(name string, value string) {
@@ -169,6 +190,27 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerifyTLS},
 	}
 	client := &http.Client{Transport: tr}
+	dnsResolver := os.Getenv("PIGGY_DNS_RESOLVER")
+	if _, ok := golangNetwork[dnsResolver]; ok {
+		log.Info().Msgf("Using DNS Resolver %s", dnsResolver)
+		dialer := &net.Dialer{
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, dnsResolver, address)
+				},
+			},
+		}
+		client.Transport.(*http.Transport).DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			c, err := tls.DialWithDialer(dialer, network, addr, client.Transport.(*http.Transport).TLSClientConfig)
+			if err != nil {
+				return nil, err
+			}
+			return c, c.Handshake()
+		}
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error().Msgf("Error while requesting secret %v", err)
@@ -276,6 +318,12 @@ func main() {
 		name := split[0]
 		value := split[1]
 		osEnv[name] = value
+	}
+	if os.Getenv("PIGGY_DELAY_SECOND") != "" {
+		if delay, err := strconv.ParseInt(os.Getenv("PIGGY_DELAY_SECOND"), 10, 0); err == nil {
+			log.Info().Msgf("Sleeping for %d seconds", delay)
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
 	}
 	if standalone {
 		log.Debug().Msgf("Running in standalone mode")
