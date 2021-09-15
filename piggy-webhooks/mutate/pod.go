@@ -139,6 +139,14 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 			},
 		}...)
 	}
+	if config.PiggyDNSResolver != "" {
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_DNS_RESOLVER",
+				Value: config.PiggyDNSResolver,
+			},
+		}...)
+	}
 	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying volume mounts '%s' containers ...", container.Name)
 	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 		Name:      "piggy-env",

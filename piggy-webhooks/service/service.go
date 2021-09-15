@@ -35,6 +35,7 @@ const ConfigImagePullSecret = "image-pull-secret" // Container image pull secret
 const ConfigImagePullSecretNamespace = "image-pull-secret-namespace" // Container image pull secret namespace
 const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"   // Default to true; not verify the registry
 const ConfigStandalone = "standalone"                                // Default to false; use piggy-webhook to read secrets instead of pod
+const ConfigPiggyDNSResolver = "piggy-dns-resolver"                  // Default to ""; Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
 // use only when injecting secrets
 const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account"      // Default to false; Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
 const ConfigPiggyDefaultSecretNamePrefix = "piggy-default-secret-name-prefix" // Default to ""; Set default prefix string for secret name
@@ -60,6 +61,7 @@ type PiggyConfig struct {
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`
 	ImageSkipVerifyRegistry          bool              `json:"imageSkipVerifyRegistry"`
 	Standalone                       bool              `json:"standalone"`
+	PiggyDNSResolver                 string            `json:"piggyDNSResolver"`
 	// use only when injecting secrets
 	PiggyEnforceServiceAccount   bool   `json:"piggyEnforceServiceAccount"`
 	PiggyDefaultSecretNamePrefix string `json:"piggyDefaultSecretNamePrefix"`

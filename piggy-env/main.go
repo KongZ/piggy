@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -41,7 +43,24 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_IGNORE_NO_ENV":              true,
 	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true,
 	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true,
+	"PIGGY_DNS_RESOLVER":               true,
 }
+
+var golangNetwork = map[string]bool{
+	"tcp":        true,
+	"tcp4":       true,
+	"tcp6":       true,
+	"udp":        true,
+	"udp4":       true,
+	"udp6":       true,
+	"ip":         true,
+	"ip4":        true,
+	"ip6":        true,
+	"unix":       true,
+	"unixgram":   true,
+	"unixpacket": true,
+}
+
 var schemeRegx = regexp.MustCompile(`piggy:(.+)`)
 
 func (e *sanitizedEnv) append(name string, value string) {
@@ -167,6 +186,21 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	tr := &http.Transport{
 		// #nosec G402 possible self-sign
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerifyTLS},
+	}
+	dnsResolver := os.Getenv("PIGGY_DNS_RESOLVER")
+	if _, ok := golangNetwork[dnsResolver]; ok {
+		dialer := &net.Dialer{
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, "tcp", "")
+				},
+			},
+		}
+		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, addr)
+		}
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.Do(req)

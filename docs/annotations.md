@@ -24,6 +24,10 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
 | [piggysec.com/image-pull-secret](#image-pull-secret)                                       | string  |         | Pods     |       |
 | [piggysec.com/image-pull-secret-namespace](#image-pull-secret-namespace)                   | string  |         | Pods     |       |
 | [piggysec.com/image-skip-verify-registry](#image-skip-verify-registry)                     | string  |         | Pods     |       |
+| [piggysec.com/piggy-enforce-service-account](#piggy-enforce-service-account)               | bool    | false   | Pods     |       |
+| [piggysec.com/piggy-default-secret-name-prefix](#piggy-default-secret-name-prefix)         | string  |         | Pods     |       |
+| [piggysec.com/piggy-default-secret-name-suffix](#piggy-default-secret-name-suffix)         | string  |         | Pods     |       |
+| [piggysec.com/piggy-dns-resolver](#piggy-dns-resolver)                                     | string  |         | Pods     |       |
 
 ## AWS Secret Manager
 
@@ -44,7 +48,11 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
   - <a name="piggy-enforce-integrity">`piggysec.com/piggy-enforce-integrity`</a> enforce checking command integrity before inject secrets   into. Default to `true`. Set this value to `true` is recommended in most application. Set to `false` will allow piggy-env to run on   different arguments
   - <a name="debug">`piggysec.com/debug`</a> allows to run piggy-env in debug mode. Default to `false`.
   - <a name="standalone">`piggysec.com/standalone`</a> allows to run piggy-env in standalone mode. Default to `false`. If this value is `true`, the [piggysec.com/piggy-address](#piggy-address) will not be used.
-
+  - <a name="piggy-enforce-service-account">`piggysec.com/piggy-enforce-service-account`</a> Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
+  - <a name="piggy-default-secret-name-prefix">`piggysec.com/piggy-default-secret-name-prefix`</a>Set default prefix string for secret name
+  - <a name="piggy-default-secret-name-suffix">`piggysec.com/piggy-default-secret-name-suffix`</a>Set default suffix string for secret name
+  - <a name="piggy-dns-resolver">`piggysec.com/piggy-dns-resolver`</a>Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
+  
 ## Container image settings
 
   - <a name="image-pull-secret">`piggysec.com/image-pull-secret`</a> a name of container image pull secret. The piggy will try to read the   container image by using secret in the following order

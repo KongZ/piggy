@@ -67,6 +67,7 @@ func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[stri
 	config.ImagePullSecretNamespace = service.GetStringValue(annotations, service.ConfigImagePullSecretNamespace, "")
 	config.ImageSkipVerifyRegistry = service.GetBoolValue(annotations, service.ConfigImageSkipVerifyRegistry, true)
 	config.Standalone = service.GetBoolValue(annotations, service.ConfigStandalone, false)
+	config.PiggyDNSResolver = service.GetStringValue(annotations, service.ConfigPiggyDNSResolver, "")
 	return config
 }
 
