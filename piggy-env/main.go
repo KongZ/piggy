@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -41,9 +42,10 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_ALLOWED_SA":                 true,
 	"PIGGY_SKIP_VERIFY_TLS":            true,
 	"PIGGY_IGNORE_NO_ENV":              true,
-	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true,
-	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true,
-	"PIGGY_DNS_RESOLVER":               true,
+	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true, // use before secret
+	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true, // use before secret
+	"PIGGY_DNS_RESOLVER":               true, // use before secret
+	"PIGGY_DELAY_SECOND":               true, // use before secret
 }
 
 var golangNetwork = map[string]bool{
@@ -187,22 +189,28 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 		// #nosec G402 possible self-sign
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerifyTLS},
 	}
+	client := &http.Client{Transport: tr}
 	dnsResolver := os.Getenv("PIGGY_DNS_RESOLVER")
 	if _, ok := golangNetwork[dnsResolver]; ok {
+		log.Info().Msgf("Using DNS Resolver %s", dnsResolver)
 		dialer := &net.Dialer{
 			Resolver: &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 					d := net.Dialer{}
-					return d.DialContext(ctx, dnsResolver, "")
+					return d.DialContext(ctx, dnsResolver, address)
 				},
 			},
 		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, addr)
+		client.Transport.(*http.Transport).DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			c, err := tls.DialWithDialer(dialer, network, addr, client.Transport.(*http.Transport).TLSClientConfig)
+			if err != nil {
+				return nil, err
+			}
+			return c, c.Handshake()
 		}
 	}
-	client := &http.Client{Transport: tr}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error().Msgf("Error while requesting secret %v", err)
@@ -310,6 +318,12 @@ func main() {
 		name := split[0]
 		value := split[1]
 		osEnv[name] = value
+	}
+	if os.Getenv("PIGGY_DELAY_SECOND") != "" {
+		if delay, err := strconv.ParseInt(os.Getenv("PIGGY_DELAY_SECOND"), 10, 0); err == nil {
+			log.Info().Msgf("Sleeping for %d seconds", delay)
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
 	}
 	if standalone {
 		log.Debug().Msgf("Running in standalone mode")

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -144,6 +145,15 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 			{
 				Name:  "PIGGY_DNS_RESOLVER",
 				Value: config.PiggyDNSResolver,
+			},
+		}...)
+	}
+	if config.PiggyDelaySecond > 0 {
+		val := strconv.FormatInt(int64(config.PiggyDelaySecond), 10)
+		container.Env = append(container.Env, []corev1.EnvVar{
+			{
+				Name:  "PIGGY_DELAY_SECOND",
+				Value: val,
 			},
 		}...)
 	}
