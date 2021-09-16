@@ -68,7 +68,8 @@ func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[stri
 	config.ImageSkipVerifyRegistry = service.GetBoolValue(annotations, service.ConfigImageSkipVerifyRegistry, true)
 	config.Standalone = service.GetBoolValue(annotations, service.ConfigStandalone, false)
 	config.PiggyDNSResolver = service.GetStringValue(annotations, service.ConfigPiggyDNSResolver, "")
-	config.PiggyDelaySecond = service.GetIntValue(annotations, service.ConfigPiggyDelaySecond, 0)
+	config.PiggyInitialDelay = service.GetStringValue(annotations, service.ConfigPiggyInitialDelay, "")
+	config.PiggyNumberOfRetry = service.GetIntValue(annotations, service.ConfigPiggyNumberOfRetry, 0)
 	return config
 }
 

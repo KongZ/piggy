@@ -148,11 +148,21 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 			},
 		}...)
 	}
-	if config.PiggyDelaySecond > 0 {
-		val := strconv.FormatInt(int64(config.PiggyDelaySecond), 10)
+	if config.PiggyInitialDelay != "" {
+		if _, err := time.ParseDuration(config.PiggyInitialDelay); err == nil {
+			container.Env = append(container.Env, []corev1.EnvVar{
+				{
+					Name:  "PIGGY_INITIAL_DELAY",
+					Value: config.PiggyInitialDelay,
+				},
+			}...)
+		}
+	}
+	if config.PiggyNumberOfRetry > 0 {
+		val := strconv.FormatInt(int64(config.PiggyNumberOfRetry), 10)
 		container.Env = append(container.Env, []corev1.EnvVar{
 			{
-				Name:  "PIGGY_DELAY_SECOND",
+				Name:  "PIGGY_NUMBER_OF_RETRY",
 				Value: val,
 			},
 		}...)
