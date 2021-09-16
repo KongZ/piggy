@@ -55,8 +55,8 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
   - <a name="piggy-default-secret-name-suffix">`piggysec.com/piggy-default-secret-name-suffix`</a>Set default suffix string for secret name
   - <a name="piggy-dns-resolver">`piggysec.com/piggy-dns-resolver`</a>Set Golang DNS resolver such as `tcp`, `udp`. See [https://pkg.go.dev/net](https://pkg.go.dev/net)
   - <a name="piggy-initial-delay">`piggysec.com/piggy-initial-delay`</a>Set delay in n[ns|us|ms|s|m|h] before start retrieving secrets. If you are using Istio Envoy, you may need to set this value to `2s`. The Envoy will block all outgoing requests from piggy-env until Envoy is fully started. Add this delay value to allow Envoy to operate before running piggy.
-  - <a name="piggy-number-of-retry">`piggysec.com/piggy-number-of-retry`</a>Set number of retry to retrieving secrets before given up. Each retry will wait for 500 milliseconds. You can use this to resolve delay initialize pods setting such as Istio Envoy. 
-  
+  - <a name="piggy-number-of-retry">`piggysec.com/piggy-number-of-retry`</a>Set number of retry to retrieving secrets before given up. Each retry will wait for 500 milliseconds. You can use this to resolve delay initialize pods setting such as Istio Envoy.
+
 ## Container image settings
 
   - <a name="image-pull-secret">`piggysec.com/image-pull-secret`</a> a name of container image pull secret. The piggy will try to read the   container image by using secret in the following order
