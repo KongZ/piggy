@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.2.5"
+  tag: "0.2.6"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -101,6 +101,9 @@ env: {}
   # PIGGY_DEFAULT_SECRET_NAME_PREFIX: ""
   ## Set default secret name suffix. If set the default secret name will be `${namespace}/${sa}${suffix}`
   # PIGGY_DEFAULT_SECRET_NAME_SUFFIX: ""
+  ## Set delay piggy to run in seconds. This is useful when using Istio Envoy. The Envoy took 1-2 seconds to operate before allowing any
+  ## traffic outgoing from Pod
+  # PIGGY_DELAY_SECOND: "2"
 
 mutate:
   certificate:
@@ -122,6 +125,6 @@ mutate:
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "0.2.5"
+    tag: "0.2.6"
 
 debug: false
