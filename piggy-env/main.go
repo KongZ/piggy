@@ -45,7 +45,8 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true, // use before secret
 	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true, // use before secret
 	"PIGGY_DNS_RESOLVER":               true, // use before secret
-	"PIGGY_DELAY_SECOND":               true, // use before secret
+	"PIGGY_INITIAL_DELAY":              true, // use before secret
+	"PIGGY_NUMBER_OF_RETRY":            true, // use before secret
 }
 
 var golangNetwork = map[string]bool{
@@ -98,7 +99,7 @@ func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[str
 	}
 }
 
-func injectSecrets(references map[string]string, env *sanitizedEnv) {
+func injectSecrets(references map[string]string, env *sanitizedEnv) error {
 	secretName := os.Getenv("PIGGY_AWS_SECRET_NAME") // "exp/sample/test"
 	region := os.Getenv("PIGGY_AWS_REGION")          // "ap-southeast-1"
 	// secretName := "exp/sample/test"
@@ -109,7 +110,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 		Region: aws.String(region),
 	})
 	if awsErr(err) {
-		return
+		return err
 	}
 	svc := secretsmanager.New(sess)
 
@@ -120,7 +121,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 
 	result, err := svc.GetSecretValue(input)
 	if awsErr(err) {
-		return
+		return err
 	}
 
 	// Decrypts secret using the associated KMS CMK.
@@ -142,6 +143,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) {
 		// }
 		// decodedBinarySecret := string(decodedBinarySecretBytes[:len])
 	}
+	return nil
 }
 
 type GetSecretPayload struct {
@@ -151,7 +153,7 @@ type GetSecretPayload struct {
 	Signature string `json:"signature"`
 }
 
-func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte) {
+func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte) error {
 	address := os.Getenv("PIGGY_ADDRESS")
 	skipVerifyTLS := true
 	if os.Getenv("PIGGY_SKIP_VERIFY_TLS") != "" {
@@ -163,7 +165,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	var serviceToken string
 	b, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
-		log.Error().Msgf("Failed to get token %v", err)
+		return fmt.Errorf("failed to get token %v", err)
 	}
 	serviceToken = string(b)
 
@@ -175,14 +177,12 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	}
 	b, err = json.Marshal(payload)
 	if err != nil {
-		log.Error().Msgf("Invalid payload %v", err)
-		return
+		return fmt.Errorf("invalid payload %v", err)
 	}
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/secret", address), bytes.NewBuffer(b))
 	req.Header.Add("X-Token", serviceToken)
 	if err != nil {
-		log.Error().Msgf("Error while creating request %v", err)
-		return
+		return fmt.Errorf("error while creating request %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	tr := &http.Transport{
@@ -213,19 +213,19 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error().Msgf("Error while requesting secret %v", err)
-		return
+		return fmt.Errorf("error while requesting secret %v", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Msgf("Error while reading secret %v", err)
+		return fmt.Errorf("error while reading secret %v", err)
 	}
 	var secrets map[string]string
 	if err := json.Unmarshal(body, &secrets); err != nil {
-		log.Error().Msgf("Error while translating secret %v", err)
+		return fmt.Errorf("error while translating secret %v", err)
 	}
 	doSanitize(references, env, secrets)
+	return nil
 }
 
 func install(src, dst string) error {
@@ -235,7 +235,7 @@ func install(src, dst string) error {
 	}
 	defer func() {
 		if err := source.Close(); err != nil {
-			log.Error().Msgf("Error closing file: %s\n", err)
+			log.Error().Msgf("error closing file: %s\n", err)
 		}
 	}()
 	if fileInfo, err := os.Stat(dst); err == nil {
@@ -273,8 +273,11 @@ func install(src, dst string) error {
 }
 
 // piggy-env install {location}
-// piggy-env --standalone -- {command}
-// piggy-env -- {command}
+// piggy-env {flag} -- {command}
+//  flag:
+//    --standalone
+//    --initial-delay
+//    --retry
 func main() {
 	debug, _ := strconv.ParseBool(os.Getenv("PIGGY_DEBUG"))
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -290,6 +293,8 @@ func main() {
 			break
 		}
 	}
+	numberOfRetry := 1
+	initialDelay := time.Duration(0)
 	standalone := false
 	if len(args) > 1 {
 		if args[1] == "install" {
@@ -301,16 +306,57 @@ func main() {
 				log.Fatal().Msgf("Failed to install %v", err)
 			}
 			os.Exit(0)
-		} else if args[1] == "--standalone" {
-			standalone = true
-		} else {
-			log.Fatal().Msgf("Invalid command")
 		}
+		for i := 0; i < len(args); i++ {
+			if args[i] == "--standalone" {
+				standalone = true
+			} else if args[i] == "--retry" {
+				var i64 int64
+				var err error
+				i = i + 1
+				if i >= len(args) {
+					log.Fatal().Msg("Missing --retry argument value")
+				}
+				if i64, err = strconv.ParseInt(args[i], 10, 0); err != nil || i64 < 1 {
+					log.Fatal().Msgf("Invalid --retry value. Expecting integer > 0")
+				}
+				numberOfRetry = int(i64)
+			} else if args[i] == "--initial-delay" {
+				var err error
+				i = i + 1
+				if i >= len(args) {
+					log.Fatal().Msg("Missing --initial-delay argument value")
+				}
+				if initialDelay, err = time.ParseDuration(args[i]); err != nil {
+					log.Fatal().Msgf("Invalid --initial-delay value. [%s]", err)
+				}
+			}
+		}
+	}
+
+	if len(cmdArgs) == 0 {
+		log.Fatal().Msgf("Invalid command")
 	}
 	// override arguments
 	if os.Getenv("PIGGY_STANDALONE") != "" {
 		standalone, _ = strconv.ParseBool(os.Getenv("PIGGY_STANDALONE"))
 	}
+	if os.Getenv("PIGGY_INITIAL_DELAY") != "" {
+		var err error
+		if initialDelay, err = time.ParseDuration(os.Getenv("PIGGY_INITIAL_DELAY")); err != nil {
+			log.Info().Msgf("Invalid PIGGY_INITIAL_DELAY value. [%s]", err)
+		}
+	}
+	if os.Getenv("PIGGY_NUMBER_OF_RETRY") != "" {
+		var i64 int64
+		var err error
+		if i64, err = strconv.ParseInt(os.Getenv("PIGGY_NUMBER_OF_RETRY"), 10, 0); err != nil || i64 < 1 {
+			log.Info().Msgf("Invalid PIGGY_NUMBER_OF_RETRY value. Expecting integer > 0")
+		}
+		numberOfRetry = int(i64)
+	}
+
+	// start the piggy
 	osEnv := make(map[string]string, len(os.Environ()))
 	sanitized := sanitizedEnv{}
 	for _, env := range os.Environ() {
@@ -319,15 +365,22 @@ func main() {
 		value := split[1]
 		osEnv[name] = value
 	}
-	if os.Getenv("PIGGY_DELAY_SECOND") != "" {
-		if delay, err := strconv.ParseInt(os.Getenv("PIGGY_DELAY_SECOND"), 10, 0); err == nil {
-			log.Info().Msgf("Sleeping for %d seconds", delay)
-			time.Sleep(time.Duration(delay) * time.Second)
-		}
+	if initialDelay > 0 {
+		log.Info().Msgf("Sleeping for %s", initialDelay)
+		time.Sleep(initialDelay)
 	}
 	if standalone {
 		log.Debug().Msgf("Running in standalone mode")
-		injectSecrets(osEnv, &sanitized)
+		for i := 0; i < numberOfRetry; i++ {
+			log.Debug().Msgf("Retry %d/%d", (i + 1), numberOfRetry)
+			if e := injectSecrets(osEnv, &sanitized); e != nil {
+				log.Error().Msg(e.Error())
+				time.Sleep(500 * time.Millisecond)
+			} else {
+				log.Info().Msg("Request secrets was successful")
+				break
+			}
+		}
 	} else {
 		log.Debug().Msgf("Running in proxy mode")
 		sig := strings.TrimSpace(strings.Join(cmdArgs, " "))
@@ -336,7 +389,17 @@ func main() {
 		if err != nil {
 			log.Error().Msgf("%v", err)
 		}
-		requestSecrets(osEnv, &sanitized, h.Sum(nil))
+		sum := h.Sum(nil)
+		for i := 0; i < numberOfRetry; i++ {
+			log.Debug().Msgf("Retry %d/%d", (i + 1), numberOfRetry)
+			if e := requestSecrets(osEnv, &sanitized, sum); e != nil {
+				log.Error().Msg(e.Error())
+				time.Sleep(500 * time.Millisecond)
+			} else {
+				log.Info().Msg("Request secrets was successful")
+				break
+			}
+		}
 	}
 	ignoreNoEnv := false
 	if os.Getenv("PIGGY_IGNORE_NO_ENV") != "" {

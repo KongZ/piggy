@@ -36,7 +36,8 @@ const ConfigImagePullSecretNamespace = "image-pull-secret-namespace" // Containe
 const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"   // Default to true; not verify the registry
 const ConfigStandalone = "standalone"                                // Default to false; use piggy-webhook to read secrets instead of pod
 const ConfigPiggyDNSResolver = "piggy-dns-resolver"                  // Default to ""; Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
-const ConfigPiggyDelaySecond = "piggy-delay-second"                  // Default to 0; Delay in seconds before requesting secret from piggy-webhooks or secret-manager
+const ConfigPiggyInitialDelay = "piggy-initial-delay"                // Default to 0; Delay n[ns|us|ms|s|m|h] before requesting secret from piggy-webhooks or secret-manager e.g. 1s (1 second)
+const ConfigPiggyNumberOfRetry = "piggy-number-of-retry"             // Default to 0; Set number of retry retrieving secrets before giving up
 // use only when injecting secrets
 const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account"      // Default to false; Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
 const ConfigPiggyDefaultSecretNamePrefix = "piggy-default-secret-name-prefix" // Default to ""; Set default prefix string for secret name
@@ -63,7 +64,8 @@ type PiggyConfig struct {
 	ImageSkipVerifyRegistry          bool              `json:"imageSkipVerifyRegistry"`
 	Standalone                       bool              `json:"standalone"`
 	PiggyDNSResolver                 string            `json:"piggyDNSResolver"`
-	PiggyDelaySecond                 int               `json:"piggyDelaySecond"`
+	PiggyInitialDelay                string            `json:"piggyInitialDelay"`
+	PiggyNumberOfRetry               int               `json:"piggyNumberOfRetry"`
 	// use only when injecting secrets
 	PiggyEnforceServiceAccount   bool   `json:"piggyEnforceServiceAccount"`
 	PiggyDefaultSecretNamePrefix string `json:"piggyDefaultSecretNamePrefix"`

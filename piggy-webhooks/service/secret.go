@@ -67,7 +67,8 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_DEFAULT_SECRET_NAME_PREFIX": true, // use before secret
 	"PIGGY_DEFAULT_SECRET_NAME_SUFFIX": true, // use before secret
 	"PIGGY_DNS_RESOLVER":               true, // use before secret
-	"PIGGY_DELAY_SECOND":               true, // use before secret
+	"PIGGY_INITIAL_DELAY":              true, // use before secret
+	"PIGGY_NUMBER_OF_RETRY":            true, // use before secret
 }
 
 func (e *SanitizedEnv) append(name string, value string) {
