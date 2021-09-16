@@ -377,6 +377,7 @@ func main() {
 				log.Error().Msg(e.Error())
 				time.Sleep(500 * time.Millisecond)
 			} else {
+				log.Info().Msg("Request secrets was successful")
 				break
 			}
 		}
@@ -395,6 +396,7 @@ func main() {
 				log.Error().Msg(e.Error())
 				time.Sleep(500 * time.Millisecond)
 			} else {
+				log.Info().Msg("Request secrets was successful")
 				break
 			}
 		}
