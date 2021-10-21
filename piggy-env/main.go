@@ -369,12 +369,14 @@ func main() {
 		log.Info().Msgf("Sleeping for %s", initialDelay)
 		time.Sleep(initialDelay)
 	}
+	retryResults := make([]string, numberOfRetry)
+	success := false
 	if standalone {
 		log.Debug().Msgf("Running in standalone mode")
-		for i := 0; i < numberOfRetry; i++ {
+		for i := 0; !success && i < numberOfRetry; i++ {
 			log.Debug().Msgf("Retry %d/%d", (i + 1), numberOfRetry)
 			if e := injectSecrets(osEnv, &sanitized); e != nil {
-				log.Error().Msg(e.Error())
+				retryResults[i] = fmt.Sprintf("Retry %d/%d [error=%s]", (i + 1), numberOfRetry, e.Error())
 				time.Sleep(500 * time.Millisecond)
 			} else {
 				log.Info().Msg("Request secrets was successful")
@@ -390,15 +392,21 @@ func main() {
 			log.Error().Msgf("%v", err)
 		}
 		sum := h.Sum(nil)
-		for i := 0; i < numberOfRetry; i++ {
+		for i := 0; !success && i < numberOfRetry; i++ {
 			log.Debug().Msgf("Retry %d/%d", (i + 1), numberOfRetry)
 			if e := requestSecrets(osEnv, &sanitized, sum); e != nil {
-				log.Error().Msg(e.Error())
+				retryResults[i] = fmt.Sprintf("Retry %d/%d [error=%s]", (i + 1), numberOfRetry, e.Error())
 				time.Sleep(500 * time.Millisecond)
 			} else {
+				success = true
 				log.Info().Msg("Request secrets was successful")
 				break
 			}
+		}
+	}
+	if !success {
+		for _, result := range retryResults {
+			log.Error().Msg(result)
 		}
 	}
 	ignoreNoEnv := false
