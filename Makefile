@@ -5,6 +5,7 @@ PIGGY_ENV_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-env
 PIGGY_WEBHOOK_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-webhooks
 
 # Build variables
+BUILD_ARCH ?= amd64
 VERSION = $(shell git describe --tags --always --dirty)
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE = $(shell date +%FT%T%z)
@@ -13,11 +14,15 @@ export CGO_ENABLED ?= 1
 export GOOS = $(shell go env GOOS)
 # export GO111MODULE=off
 ifeq (${VERBOSE}, 1)
-	GOARGS += -v
+	GOFLAGS += -v
 endif
 
 # Docker variables
-DOCKER_TAG ?= ${VERSION}
+ifeq ($(BUILD_ARCH), amd64)
+	DOCKER_TAG = ${VERSION}
+else
+	DOCKER_TAG = ${VERSION}-$(BUILD_ARCH)
+endif
 
 # chdir
 CHDIR_SHELL := $(SHELL)
@@ -35,7 +40,7 @@ build: ## Build all binaries
 build-piggy-env: ## Build a piggy-env binary
 	@$(call chdir,piggy-env)
 	@echo "\033[0;30m\n🚜 Building piggy-env..."
-	@go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@go build GOARCH=${BUILD_ARCH} ${GOFLAGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
 	@echo "\033[0;32m\n🏃‍♂️ Running Go test..."
 	@go test -race -cover -v ./...
 	@echo "\033[0;34m\n👨‍⚕️ Running Staticcheck..."
@@ -48,7 +53,7 @@ build-piggy-env: ## Build a piggy-env binary
 build-piggy-webhooks: ## Build a piggy-webhooks binary
 	@$(call chdir,piggy-webhooks)
 	@echo "\033[0;30m\n🚜 Building piggy-webhooks..."
-	@go build ${GOARGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@go build ${GOFLAGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
 	@echo "\033[0;32m\n🏃‍♂️ Running Go test..."
 	@go test -race -cover -v ./...
 	@echo "\033[0;34m\n👨‍⚕️ Running Staticcheck..."
@@ -58,13 +63,15 @@ build-piggy-webhooks: ## Build a piggy-webhooks binary
 	@echo "\033[0m"
 
 .PHONY: build-debug
-build-debug: GOARGS += -gcflags "all=-N -l"
+build-debug: GOFLAGS += -gcflags "all=-N -l"
 build-debug: build ## Build a binary with remote debugging capabilities
 
 .PHONY: docker-piggy-env
 docker-piggy-env: ## Build a piggy-env Docker image
+	@echo "Building architecture ${BUILD_ARCH}"
 	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--build-arg=VERSION=$(VERSION) \
+		--build-arg=GOARCH=$(BUILD_ARCH) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-env/Dockerfile piggy-env
