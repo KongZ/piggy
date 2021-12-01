@@ -3,6 +3,7 @@ ARG VERSION
 ARG COMMIT_HASH
 ARG BUILD_DATE
 ARG LDFLAGS
+ARG BUILD_ARCH="amd64"
 ENV LDFLAGS="${LDFLAGS} -w -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}"
 
 # Install tools
@@ -21,14 +22,14 @@ RUN go mod download
 # Copy files
 COPY . .
 
-RUN go get github.com/securego/gosec/cmd/gosec
-RUN go get honnef.co/go/tools/cmd/staticcheck
+RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
+RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 RUN CGO_ENABLED=0 go vet ./...
 RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$BUILD_ARCH go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
 
 ################################
 # Main image

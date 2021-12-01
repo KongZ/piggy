@@ -21,8 +21,8 @@ RUN go mod download
 # Copy files
 COPY . .
 
-RUN go get github.com/securego/gosec/cmd/gosec
-RUN go get honnef.co/go/tools/cmd/staticcheck
+RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
+RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 RUN go mod vendor
 RUN CGO_ENABLED=0 go vet ./...
 RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...

@@ -33,24 +33,45 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_TOKEN }}
-      - name: Build piggy-env and push
-        id: docker_piggy-env
+      - name: Build piggy-env and push (amd64)
+        id: docker_piggy-env-amd64
         uses: docker/build-push-action@v2
         with:
           context: ./piggy-env
+          build-args: |
+            BUILD_ARCH=amd64
+            VERSION=${{ steps.version.outputs.value }}
           file: ./piggy-env/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: true
           tags: ghcr.io/kongz/piggy-env:${{ steps.version.outputs.value }},ghcr.io/kongz/piggy-env:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-      - name: piggy-env digest
-        run: echo ${{ steps.docker_piggy-env.outputs.digest }}
+      - name: piggy-env digest (amd64)
+        run: echo ${{ steps.docker_piggy-env-amd64.outputs.digest }}
+      - name: Build piggy-env and push (arm64)
+        id: docker_piggy-env-arm64
+        uses: docker/build-push-action@v2
+        with:
+          context: ./piggy-env
+          build-args: |
+            BUILD_ARCH=arm64
+            VERSION=${{ steps.version.outputs.value }}
+          file: ./piggy-env/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: ghcr.io/kongz/piggy-env:${{ steps.version.outputs.value }}-arm64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: piggy-env digest (arm64)
+        run: echo ${{ steps.docker_piggy-env-arm64.outputs.digest }}
       - name: Build piggy-webhooks and push
         id: docker_piggy-webhooks
         uses: docker/build-push-action@v2
         with:
           context: ./piggy-webhooks
+          build-args: |
+            VERSION=${{ steps.version.outputs.value }}
           file: ./piggy-webhooks/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: true
