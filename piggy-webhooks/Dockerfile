@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
 
 ################################
 # Main image

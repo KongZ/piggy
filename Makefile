@@ -5,7 +5,7 @@ PIGGY_ENV_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-env
 PIGGY_WEBHOOK_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-webhooks
 
 # Build variables
-BUILD_ARCH ?= amd64
+BUILD_ARCH ?= linux/amd64
 VERSION = $(shell git describe --tags --always --dirty)
 COMMIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE = $(shell date +%FT%T%z)
@@ -18,12 +18,11 @@ ifeq (${VERBOSE}, 1)
 endif
 
 # Docker variables
-ifeq ($(BUILD_ARCH), amd64)
+ifeq ($(BUILD_ARCH), linux/amd64)
 	DOCKER_TAG = ${VERSION}
 else
 	DOCKER_TAG = ${VERSION}-$(BUILD_ARCH)
 endif
-
 # chdir
 CHDIR_SHELL := $(SHELL)
 define chdir
@@ -40,7 +39,7 @@ build: ## Build all binaries
 build-piggy-env: ## Build a piggy-env binary
 	@$(call chdir,piggy-env)
 	@echo "\033[0;30m\n🚜 Building piggy-env..."
-	@go build GOARCH=${BUILD_ARCH} ${GOFLAGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
+	@go build ${GOFLAGS} -tags "${GOTAGS}" -ldflags "${LDFLAGS}" .
 	@echo "\033[0;32m\n🏃‍♂️ Running Go test..."
 	@go test -race -cover -v ./...
 	@echo "\033[0;34m\n👨‍⚕️ Running Staticcheck..."
@@ -70,6 +69,18 @@ build-debug: build ## Build a binary with remote debugging capabilities
 docker-piggy-env: ## Build a piggy-env Docker image
 	@echo "Building architecture ${BUILD_ARCH}"
 	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--build-arg=VERSION=$(VERSION) \
+		--build-arg=TARGETPLATFORM=$(BUILD_ARCH) \
+		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg=BUILD_DATE=$(BUILD_DATE) \
+		-f piggy-env/Dockerfile piggy-env
+
+.PHONY: docker-piggy-env-multi
+docker-piggy-env-multi: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
+docker-piggy-env-multi: ## Build a piggy-env Docker image in multi-architect
+	@echo "Building architecture ${BUILD_ARCH}"
+	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=TARGETPLATFORM=$(BUILD_ARCH) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
