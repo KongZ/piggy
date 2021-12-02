@@ -28,7 +28,7 @@ RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETPLATFORM go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
 
 ################################
 # Main image

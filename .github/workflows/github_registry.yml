@@ -58,6 +58,7 @@ jobs:
             VERSION=${{ steps.version.outputs.value }}
           file: ./piggy-webhooks/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/kongz/piggy-webhooks:${{ steps.version.outputs.value }},ghcr.io/kongz/piggy-webhooks:latest
           cache-from: type=local,src=/tmp/.buildx-cache
