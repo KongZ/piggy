@@ -71,7 +71,7 @@ docker-piggy-env: ## Build a piggy-env Docker image
 	@echo "Building architecture ${BUILD_ARCH}"
 	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--build-arg=VERSION=$(VERSION) \
-		--build-arg=GOARCH=$(BUILD_ARCH) \
+		--build-arg=TARGETPLATFORM=$(BUILD_ARCH) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-env/Dockerfile piggy-env

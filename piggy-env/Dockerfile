@@ -3,7 +3,6 @@ ARG VERSION
 ARG COMMIT_HASH
 ARG BUILD_DATE
 ARG LDFLAGS
-ARG BUILD_ARCH="amd64"
 ENV LDFLAGS="${LDFLAGS} -w -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}"
 
 # Install tools
@@ -29,7 +28,7 @@ RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$BUILD_ARCH go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETPLATFORM go build -v -o /piggy-env/piggy-env -ldflags="$LDFLAGS" .
 
 ################################
 # Main image
