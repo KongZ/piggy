@@ -70,19 +70,6 @@ docker-piggy-env: ## Build a piggy-env Docker image
 	@echo "Building architecture ${BUILD_ARCH}"
 	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--build-arg=VERSION=$(VERSION) \
-		--build-arg=TARGETPLATFORM=$(BUILD_ARCH) \
-		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
-		--build-arg=BUILD_DATE=$(BUILD_DATE) \
-		-f piggy-env/Dockerfile piggy-env
-
-.PHONY: docker-piggy-env-multi
-docker-piggy-env-multi: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
-docker-piggy-env-multi: ## Build a piggy-env Docker image in multi-architect
-	@echo "Building architecture ${BUILD_ARCH}"
-	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
-		--platform=$(BUILD_ARCH) \
-		--build-arg=VERSION=$(VERSION) \
-		--build-arg=TARGETPLATFORM=$(BUILD_ARCH) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-env/Dockerfile piggy-env
@@ -90,6 +77,23 @@ docker-piggy-env-multi: ## Build a piggy-env Docker image in multi-architect
 .PHONY: docker-piggy-webhooks
 docker-piggy-webhooks: ## Build a piggy-webhooks Docker image
 	docker build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--build-arg=VERSION=$(VERSION) \
+		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg=BUILD_DATE=$(BUILD_DATE) \
+		-f piggy-webhooks/Dockerfile piggy-webhooks
+
+.PHONY: docker-piggy-multi
+docker-piggy-multi: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
+docker-piggy-multi: ## Build a piggy-env and piggy-webhooks Docker image in multi-architect
+	@echo "Building architecture ${BUILD_ARCH}"
+	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--platform=$(BUILD_ARCH) \
+		--build-arg=VERSION=$(VERSION) \
+		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg=BUILD_DATE=$(BUILD_DATE) \
+		-f piggy-env/Dockerfile piggy-env
+	docker buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
