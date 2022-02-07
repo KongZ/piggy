@@ -243,7 +243,7 @@ func install(src, dst string) error {
 			dst = dst + "/piggy-env"
 		}
 	}
-	destination, err := os.Create(dst)
+	destination, err := os.Create(filepath.Clean(dst))
 	if err != nil {
 		return err
 	}
@@ -369,6 +369,10 @@ func main() {
 		log.Info().Msgf("Sleeping for %s", initialDelay)
 		time.Sleep(initialDelay)
 	}
+	ignoreNoEnv := false
+	if os.Getenv("PIGGY_IGNORE_NO_ENV") != "" {
+		ignoreNoEnv, _ = strconv.ParseBool(os.Getenv("PIGGY_IGNORE_NO_ENV"))
+	}
 	retryResults := make([]string, numberOfRetry)
 	success := false
 	if standalone {
@@ -408,10 +412,9 @@ func main() {
 		for _, result := range retryResults {
 			log.Error().Msg(result)
 		}
-	}
-	ignoreNoEnv := false
-	if os.Getenv("PIGGY_IGNORE_NO_ENV") != "" {
-		ignoreNoEnv, _ = strconv.ParseBool(os.Getenv("PIGGY_IGNORE_NO_ENV"))
+		if !ignoreNoEnv {
+			log.Fatal().Msgf("Unable to communicate with %s", os.Getenv("PIGGY_ADDRESS"))
+		}
 	}
 	if !ignoreNoEnv {
 		for _, v := range sanitized.Env {
