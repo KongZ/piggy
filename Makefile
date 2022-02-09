@@ -99,6 +99,26 @@ docker-piggy-multi: ## Build a piggy-env and piggy-webhooks Docker image in mult
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-webhooks/Dockerfile piggy-webhooks
 
+.PHONY: docker-piggy-multi-push
+docker-piggy-multi-push: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
+docker-piggy-multi-push: ## Build a piggy-env and piggy-webhooks Docker image in multi-architect and push to GCR
+	@docker login ghcr.io -u USERNAME -p $(CR_PAT)
+	@echo "Building architecture ${BUILD_ARCH}"
+	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--push \
+		--platform=$(BUILD_ARCH) \
+		--build-arg=VERSION=$(VERSION) \
+		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg=BUILD_DATE=$(BUILD_DATE) \
+		-f piggy-env/Dockerfile piggy-env
+	docker buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--push \
+		--platform=$(BUILD_ARCH) \
+		--build-arg=VERSION=$(VERSION) \
+		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
+		--build-arg=BUILD_DATE=$(BUILD_DATE) \
+		-f piggy-webhooks/Dockerfile piggy-webhooks
+
 release-%: ## Release a new version
 	git tag -m 'Release $*' $*
 
