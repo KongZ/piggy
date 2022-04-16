@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -34,6 +35,7 @@ type sanitizedEnv struct {
 
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME":            true,
+	"PIGGY_AWS_SSM_PARAMETER_PATH":     true,
 	"PIGGY_AWS_REGION":                 true,
 	"PIGGY_POD_NAME":                   true,
 	"PIGGY_DEBUG":                      true,
@@ -97,6 +99,48 @@ func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[str
 		}
 		env.append(refName, refValue)
 	}
+}
+
+func inject(references map[string]string, env *sanitizedEnv) error {
+	ssmPath := os.Getenv("PIGGY_AWS_SSM_PARAMETER_PATH")
+	if ssmPath == "" {
+		return injectSecrets(references, env)
+	}
+	return injectParameters(references, env)
+}
+
+func injectParameters(references map[string]string, env *sanitizedEnv) error {
+	ssmPath := os.Getenv("PIGGY_AWS_SSM_PARAMETER_PATH") // "/exp/sample/test"
+	region := os.Getenv("PIGGY_AWS_REGION")              // "ap-southeast-1"
+	// Create a SSM client
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	})
+	if awsErr(err) {
+		return err
+	}
+	pm := ssm.New(sess)
+	input := &ssm.GetParametersByPathInput{
+		Path:           aws.String(ssmPath),
+		Recursive:      aws.Bool(true),
+		WithDecryption: aws.Bool(true),
+	}
+
+	var result []*ssm.Parameter
+	fn := func(output *ssm.GetParametersByPathOutput, _ bool) bool {
+		result = append(result, output.Parameters...)
+		return true
+	}
+	if err := pm.GetParametersByPathPages(input, fn); err != nil {
+		return err
+	}
+	secrets := make(map[string]string)
+	for _, param := range result {
+		name := filepath.Base(*param.Name)
+		secrets[name] = *param.Value
+	}
+	doSanitize(references, env, secrets)
+	return nil
 }
 
 func injectSecrets(references map[string]string, env *sanitizedEnv) error {
@@ -219,6 +263,9 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error while reading secret %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(string(body))
 	}
 	var secrets map[string]string
 	if err := json.Unmarshal(body, &secrets); err != nil {
@@ -379,7 +426,7 @@ func main() {
 		log.Debug().Msgf("Running in standalone mode")
 		for i := 0; !success && i < numberOfRetry; i++ {
 			log.Debug().Msgf("Retry %d/%d", (i + 1), numberOfRetry)
-			if e := injectSecrets(osEnv, &sanitized); e != nil {
+			if e := inject(osEnv, &sanitized); e != nil {
 				retryResults[i] = fmt.Sprintf("Retry %d/%d [error=%s]", (i + 1), numberOfRetry, e.Error())
 				time.Sleep(500 * time.Millisecond)
 			} else {

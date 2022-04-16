@@ -18,7 +18,7 @@ Alternatively, you can use Terraform the setup IRSA. Sees [https://github.com/te
 
 The simplest IRSA Policy for Piggy webhooks
 
-```yaml
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -164,7 +164,7 @@ func main() {
 
 ### Restrict process to run
 
-Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
+Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
 
 ### Limit secrets injection only allowed service accounts
 
@@ -185,7 +185,7 @@ myapp-namespace:myapp,myanotherapp-namespace:default
 
 The Piggy provides 3 concepts to protect secrets.
 
-  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/enforce-integrity/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
+  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
   Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
   For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
   - Piggy will generate a UID for each containers during mutation process. If the requests from container is not matched the UID which was generated, it will reject.
@@ -343,6 +343,71 @@ See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md
 ## Annotations
 
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
+
+## SSM Parameter Store
+
+The piggy also support SSM Parameter Store. To retrieve secrets from parameter store, you will just add an annotation `piggysec.com/aws-ssm-parameter-path`. The piggy automatically detect this annotation and pull the secrets from parameter store instead of secret manager.
+
+*Note:* it support only [GetParameterByPath](https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParametersByPath.html) so referencing AWS Secrets Manager secrets from Parameter Store parameters is not supported yet.
+
+Annotations
+
+### Parameter path
+
+The parameter store is reference in a [hierarchy](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-su-create.html). The `piggysec.com/aws-ssm-parameter-path` annotation will refer to parameter path and name will be a last value of path. For example:
+
+![ssm_parameter_store](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/ssm_parameter_store.png "ssm_parameter_store")
+
+The annotation is
+
+```yaml
+piggysec.com/aws-ssm-parameter-path: /demo/sample/test
+```
+
+And the environment variable are
+
+```yaml
+- name: TEST_ENV
+  value: piggy:TEST_ENV
+- name: TEST_LIST
+  value: piggy:TEST_LIST
+- name: TEST_PLAIN
+  value: piggy:TEST_PLAIN
+```
+
+### Policy for SSM Parameter Store
+
+Required `ssm:GetParametersByPath` permission for reading parameter store.
+
+Example minimum policy for reading value from SSM Parameter Store
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PiggySSM",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PiggyECRReadOnly",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:DescribeImages",
+        "ecr:GetAuthorizationToken",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+```
 
 ## License
 

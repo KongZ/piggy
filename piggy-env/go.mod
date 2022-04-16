@@ -3,7 +3,7 @@ module github.com/KongZ/piggy/piggy-env
 go 1.17
 
 require (
-	github.com/aws/aws-sdk-go v1.42.17
+	github.com/aws/aws-sdk-go v1.43.40
 	github.com/rs/zerolog v1.26.0
 )
 

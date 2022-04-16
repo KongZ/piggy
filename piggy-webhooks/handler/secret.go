@@ -53,6 +53,10 @@ func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSec
 	// Serve request
 	env, info, err := secretFunc(&payload)
 	if err != nil {
+		if err == service.ErrorAuthorized {
+			w.WriteHeader(http.StatusForbidden)
+			return nil, info, err
+		}
 		w.WriteHeader(http.StatusBadRequest)
 		return nil, info, fmt.Errorf("could not get secret: %v", err)
 	}
