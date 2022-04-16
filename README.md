@@ -345,6 +345,7 @@ See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
 
 ## SSM Parameter Store
+
 The piggy also support SSM Parameter Store. To retrieve secrets from parameter store, you will just add an annotation `piggysec.com/aws-ssm-parameter-path`. The piggy automatically detect this annotation and pull the secrets from parameter store instead of secret manager.
 
 *Note:* it support only [GetParameterByPath](https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParametersByPath.html) so referencing AWS Secrets Manager secrets from Parameter Store parameters is not supported yet.
@@ -375,6 +376,7 @@ And the environment variable are
 ```
 
 ### Policy for SSM Parameter Store
+
 Required `ssm:GetParametersByPath` permission for reading parameter store.
 
 Example minimum policy for reading value from SSM Parameter Store
