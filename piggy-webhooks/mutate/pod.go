@@ -96,6 +96,10 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 			Name:  "PIGGY_AWS_REGION",
 			Value: config.AWSRegion,
 		},
+		{
+			Name:  "PIGGY_AWS_SSM_PARAMETER_PATH",
+			Value: config.AWSSSMParameterPath,
+		},
 	}...)
 	if config.Debug {
 		container.Env = append(container.Env, []corev1.EnvVar{
@@ -191,8 +195,8 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 // MutatePod mutate pod
 func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (interface{}, error) {
 	start := time.Now()
-	// Mutate pod only when it containing piggysec.com/aws-secret-name annotation
-	if config.AWSSecretName != "" || config.PiggyAddress != "" {
+	// Mutate pod only when it containing piggysec.com/aws-secret-name or piggysec.com/aws-ssm-parameter-path or piggysec.com/piggy-address annotation
+	if config.AWSSecretName != "" || config.AWSSSMParameterPath != "" || config.PiggyAddress != "" {
 		signature := make(Signature)
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Adding volumes to podspec ...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{

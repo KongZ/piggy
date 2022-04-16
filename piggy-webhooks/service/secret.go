@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	authv1 "k8s.io/api/authentication/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,12 +32,13 @@ type GetSecretPayload struct {
 }
 
 type Info struct {
-	Resources      string `json:"resources"`
-	Name           string `json:"name"`
-	UID            string `json:"uid"`
-	Namespace      string `json:"namespace"`
-	ServiceAccount string `json:"serviceAccount"`
-	SecretName     string `json:"secretName"`
+	Resources        string `json:"resources"`
+	Name             string `json:"name"`
+	UID              string `json:"uid"`
+	Namespace        string `json:"namespace"`
+	ServiceAccount   string `json:"serviceAccount"`
+	SecretName       string `json:"secretName,omitempty"`
+	SSMParameterPath string `json:"ssmParameterPath,omitempty"`
 }
 
 type Signature map[string]string
@@ -56,6 +59,7 @@ func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, 
 
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME":            true,
+	"PIGGY_SSM_AWS_PARAMETER_PATH":     true,
 	"PIGGY_AWS_REGION":                 true,
 	"PIGGY_POD_NAME":                   true,
 	"PIGGY_DEBUG":                      true,
@@ -89,6 +93,37 @@ func awsErr(err error) bool {
 	return false
 }
 
+func injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
+	// Create a SSM client
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(config.AWSRegion),
+	})
+	if awsErr(err) {
+		return err
+	}
+	pm := ssm.New(sess)
+	input := &ssm.GetParametersByPathInput{
+		Path:           aws.String(config.AWSSSMParameterPath),
+		Recursive:      aws.Bool(true),
+		WithDecryption: aws.Bool(true),
+	}
+
+	var result []*ssm.Parameter
+	fn := func(output *ssm.GetParametersByPathOutput, _ bool) bool {
+		result = append(result, output.Parameters...)
+		return true
+	}
+	if err := pm.GetParametersByPathPages(input, fn); err != nil {
+		return err
+	}
+	secrets := make(map[string]string)
+	for _, param := range result {
+		name := filepath.Base(*param.Name)
+		secrets[name] = *param.Value
+	}
+	return processSecret(config, secrets, env)
+}
+
 func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a Secrets Manager client
 	sess, err := session.NewSession(&aws.Config{
@@ -97,14 +132,14 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 	if awsErr(err) {
 		return err
 	}
-	svc := secretsmanager.New(sess)
+	sm := secretsmanager.New(sess)
 
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(config.AWSSecretName),
 		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
-	result, err := svc.GetSecretValue(input)
+	result, err := sm.GetSecretValue(input)
 	if awsErr(err) {
 		return err
 	}
@@ -118,28 +153,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 			return err
 		}
 
-		allowed := false
-		if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
-			log.Debug().Msgf("Allowed service accounts [%s]", sas)
-			log.Debug().Msgf("Pod service account [%s]", config.PodServiceAccountName)
-			// if secrets contains PIGGY_ALLOWED_SA
-			for _, sa := range strings.Split(sas, ",") {
-				if sa == config.PodServiceAccountName {
-					allowed = true
-					break
-				}
-			}
-		} else {
-			allowed = !config.PiggyEnforceServiceAccount
-		}
-		log.Debug().Msgf("Decision [%v]", allowed)
-		if allowed {
-			for name, value := range secrets {
-				env.append(name, value)
-			}
-		} else {
-			return errors.New("decision not allowed")
-		}
+		return processSecret(config, secrets, env)
 	} else {
 		// TODO how to mount a binary secret into ENV?
 		log.Info().Msgf("A binary secret is not supported yet")
@@ -151,6 +165,31 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 		// decodedBinarySecret := string(decodedBinarySecretBytes[:len])
 	}
 	return nil
+}
+
+func processSecret(config *PiggyConfig, secrets map[string]string, env *SanitizedEnv) error {
+	allowed := false
+	if sas, ok := secrets["PIGGY_ALLOWED_SA"]; ok && config.PodServiceAccountName != "" {
+		log.Debug().Msgf("Allowed service accounts [%s]", sas)
+		log.Debug().Msgf("Pod service account [%s]", config.PodServiceAccountName)
+		// if secrets contains PIGGY_ALLOWED_SA
+		for _, sa := range strings.Split(sas, ",") {
+			if sa == config.PodServiceAccountName {
+				allowed = true
+				break
+			}
+		}
+	} else {
+		allowed = !config.PiggyEnforceServiceAccount
+	}
+	log.Debug().Msgf("Decision [%v]", allowed)
+	if allowed {
+		for name, value := range secrets {
+			env.append(name, value)
+		}
+		return nil
+	}
+	return ErrorAuthorized
 }
 
 func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, error) {
@@ -209,6 +248,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	defaultSuffix := GetStringValue(annotations, ConfigPiggyDefaultSecretNameSuffix, "")
 	config := &PiggyConfig{
 		AWSSecretName:                GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s%s/%s%s", defaultPrefix, namespace, pod.Spec.ServiceAccountName, defaultSuffix)),
+		AWSSSMParameterPath:          GetStringValue(annotations, AWSSSMParameterPath, ""),
 		AWSRegion:                    GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName:        tokenSa,
 		PiggyEnforceIntegrity:        GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
@@ -217,6 +257,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 		PiggyDefaultSecretNameSuffix: defaultSuffix,
 	}
 	info.SecretName = config.AWSSecretName
+	info.SSMParameterPath = config.AWSSSMParameterPath
 	signature := make(Signature)
 	if err := json.Unmarshal([]byte(annotations[Namespace+ConfigPiggyUID]), &signature); err != nil {
 		log.Error().Msgf("Error while unmarshal signature %v", err)
@@ -230,6 +271,11 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	}
 
 	sanitized := &SanitizedEnv{}
-	err = injectSecrets(config, sanitized)
+	if config.AWSSSMParameterPath != "" {
+		log.Debug().Msgf("SSM Parameter [path=%s]", config.AWSSSMParameterPath)
+		err = injectParameters(config, sanitized)
+	} else {
+		err = injectSecrets(config, sanitized)
+	}
 	return sanitized, info, err
 }

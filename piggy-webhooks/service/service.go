@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -11,10 +12,13 @@ import (
 
 var (
 	EmptyMap = make(map[string]string)
+	// ErrorAuthorized when requestor does not have a permission
+	ErrorAuthorized = errors.New("decision not allowed")
 )
 
 const Namespace = "piggysec.com/"
 const AWSSecretName = "aws-secret-name"                                               // AWS secret name
+const AWSSSMParameterPath = "aws-ssm-parameter-path"                                  // AWS SSM parameter path
 const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
 const ConfigPiggyEnvImage = "piggy-env-image"                                         // The piggy-env image URL
 const ConfigPiggyEnvImagePullPolicy = "piggy-env-image-pull-policy"                   // The piggy-env image pull policy
@@ -58,6 +62,7 @@ type PiggyConfig struct {
 	PiggyEnforceIntegrity            bool              `json:"piggyEnforceIntegrity"`
 	AWSSecretName                    string            `json:"awsSecretName"`
 	AWSRegion                        string            `json:"awsRegion"`
+	AWSSSMParameterPath              string            `json:"awsSSMParameterPath"`
 	Debug                            bool              `json:"debug"`
 	ImagePullSecret                  string            `json:"imagePullSecret"`
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`

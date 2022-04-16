@@ -61,6 +61,7 @@ func (m *Mutating) mergeConfig(config *service.PiggyConfig, annotations map[stri
 	config.PiggyIgnoreNoEnv = service.GetBoolValue(annotations, service.ConfigPiggyIgnoreNoEnv, false)
 	config.PiggyEnforceIntegrity = service.GetBoolValue(annotations, service.ConfigPiggyEnforceIntegrity, true)
 	config.AWSSecretName = service.GetStringValue(annotations, service.AWSSecretName, "")
+	config.AWSSSMParameterPath = service.GetStringValue(annotations, service.AWSSSMParameterPath, "")
 	config.AWSRegion = service.GetStringValue(annotations, service.ConfigAWSRegion, "")
 	config.Debug = service.GetBoolValue(annotations, service.ConfigDebug, false)
 	config.ImagePullSecret = service.GetStringValue(annotations, service.ConfigImagePullSecret, "")
