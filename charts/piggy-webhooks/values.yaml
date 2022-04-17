@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.3.0"
+  tag: "0.4.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -73,6 +73,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+# Set number of pods from that can be unavailable after the eviction. 
+# It can be either an absolute number or a percentage.
+maxUnavailable: 1
+
 nodeSelector: {}
 
 tolerations: []
@@ -130,6 +134,6 @@ mutate:
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
-    tag: "0.3.0"
+    tag: "0.4.0"
 
 debug: false
