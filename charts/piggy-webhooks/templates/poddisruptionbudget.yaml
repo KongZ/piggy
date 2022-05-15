@@ -11,5 +11,5 @@ spec:
   maxUnavailable: {{ .Values.maxUnavailable }}
   selector:
     matchLabels:
-      {{- include "piggy-webhooks.selectorLabels" . | nindent 4 }}
+      {{- include "piggy-webhooks.selectorLabels" . | nindent 6 }}
 {{- end }}
