@@ -3,7 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/KongZ/piggy/piggy-webhooks/service"
@@ -23,7 +23,7 @@ func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSec
 		return nil, service.Info{}, fmt.Errorf("only 'application/x-www-form-urlencoded' is supported")
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return nil, service.Info{}, fmt.Errorf("could not read request body: %v", err)
