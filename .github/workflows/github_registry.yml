@@ -31,7 +31,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          echo "name=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_OUTPUT
+          echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       - name: Login to ghcr
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
