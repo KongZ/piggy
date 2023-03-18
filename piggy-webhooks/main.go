@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"crypto/tls"
+	"time"
 
 	"github.com/KongZ/piggy/piggy-webhooks/handler"
 	"github.com/KongZ/piggy/piggy-webhooks/mutate"
@@ -59,7 +61,26 @@ func main() {
 	}
 	mux.Handle("/secret", handler.SecretHandler(svc.GetSecret))
 	ch := make(chan struct{})
-	server := http.Server{Addr: listenAddress, Handler: mux}
+	enabledTls := !(certPath == "" && keyPath == "")
+	server := http.Server {
+		Addr: listenAddress,
+		Handler: mux,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+	if enabledTls {
+		tlscfg := &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			},
+		}
+		server.TLSConfig = tlscfg
+	}
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, syscall.SIGTERM)
@@ -71,12 +92,12 @@ func main() {
 		}
 		close(ch)
 	}()
-	if certPath == "" && keyPath == "" {
-		log.Info().Msgf("Listening on http://%s", listenAddress)
-		err = server.ListenAndServe()
-	} else {
+	if enabledTls {
 		log.Info().Msgf("Listening on https://%s", listenAddress)
 		err = server.ListenAndServeTLS(certPath, keyPath)
+	} else {
+		log.Info().Msgf("Listening on http://%s", listenAddress)
+		err = server.ListenAndServe()
 	}
 	if err != nil {
 		log.Fatal().Msgf("Error serving webhooks: %s", err)

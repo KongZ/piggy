@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -207,7 +206,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	log.Debug().Msgf("Address: %s", address)
 
 	var serviceToken string
-	b, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
 		return fmt.Errorf("failed to get token %v", err)
 	}
@@ -259,8 +258,10 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 	if err != nil {
 		return fmt.Errorf("error while requesting secret %v", err)
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error while reading secret %v", err)
 	}

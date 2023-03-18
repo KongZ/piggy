@@ -1,4 +1,8 @@
-FROM golang:1.17.1-buster as builder
+FROM --platform=$BUILDPLATFORM golang:1.20.2-bullseye as builder
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 ARG VERSION
 ARG COMMIT_HASH
 ARG BUILD_DATE
@@ -29,7 +33,7 @@ RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
 
 ################################
 # Main image
