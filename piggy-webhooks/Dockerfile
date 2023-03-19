@@ -7,7 +7,7 @@ ARG VERSION
 ARG COMMIT_HASH
 ARG BUILD_DATE
 ARG LDFLAGS
-ENV LDFLAGS="${LDFLAGS} -w -s -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}"
+ENV LDFLAGS="${LDFLAGS} -w -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}"
 
 # Install tools
 RUN apt-get update && apt-get -y --no-install-recommends install \
@@ -38,7 +38,6 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o piggy-webhook
 ################################
 # Main image
 ################################
-
 FROM scratch
 ARG VERSION
 ARG COMMIT_HASH

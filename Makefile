@@ -69,6 +69,7 @@ build-debug: build ## Build a binary with remote debugging capabilities
 docker-piggy-env: ## Build a piggy-env Docker image
 	@echo "Building architecture ${BUILD_ARCH}"
 	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--platform $(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
@@ -77,6 +78,7 @@ docker-piggy-env: ## Build a piggy-env Docker image
 .PHONY: docker-piggy-webhooks
 docker-piggy-webhooks: ## Build a piggy-webhooks Docker image
 	docker build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+		--platform $(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
