@@ -3,8 +3,8 @@ module github.com/KongZ/piggy/piggy-env
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go v1.44.223
-	github.com/rs/zerolog v1.29.0
+	github.com/aws/aws-sdk-go v1.44.260
+	github.com/rs/zerolog v1.29.1
 )
 
 require (
