@@ -1,29 +1,29 @@
-# Default values for piggy-webhooks.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+## Default values for piggy-webhooks.
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
   repository: ghcr.io/kongz/piggy-webhooks
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+  ## Overrides the image tag whose default is the chart appVersion.
   tag: "0.5.0"
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# Pod port
+## Pod port
 port: 8443
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  ## Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
+  ## Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  ## The name of the service account to use.
+  ## If not set and create is true, a name is generated using the fullname template
   name: ""
 
 podAnnotations: {}
@@ -73,9 +73,14 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-# Set number of pods from that can be unavailable after the eviction. 
-# It can be either an absolute number or a percentage.
+## Set number of pods from that can be unavailable after the eviction. 
+## It can be either an absolute number or a percentage.
 maxUnavailable: 1
+
+## Specify the PriorityClass name for piggy.
+## Default value is set to system-cluster-critical to ensure that piggy is always schedule first.
+##
+priorityClassName: system-cluster-critical
 
 nodeSelector: {}
 
