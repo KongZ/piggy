@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"io"
+	"net/http"
 
 	"github.com/KongZ/piggy/piggy-webhooks/mutate"
 	"github.com/rs/zerolog/log"

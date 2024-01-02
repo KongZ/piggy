@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
-	"crypto/tls"
 	"time"
 
 	"github.com/KongZ/piggy/piggy-webhooks/handler"
@@ -62,9 +62,9 @@ func main() {
 	mux.Handle("/secret", handler.SecretHandler(svc.GetSecret))
 	ch := make(chan struct{})
 	enabledTls := !(certPath == "" && keyPath == "")
-	server := http.Server {
-		Addr: listenAddress,
-		Handler: mux,
+	server := http.Server{
+		Addr:              listenAddress,
+		Handler:           mux,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 	if enabledTls {
@@ -73,10 +73,10 @@ func main() {
 			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 			PreferServerCipherSuites: true,
 			CipherSuites: []uint16{
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 			},
 		}
 		server.TLSConfig = tlscfg
