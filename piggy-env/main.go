@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -19,11 +20,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/smithy-go"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -75,10 +77,9 @@ func (e *sanitizedEnv) append(name string, value string) {
 
 func awsErr(err error) bool {
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			log.Error().Err(aerr).Msg(aerr.Code())
-		} else {
-			log.Error().Err(aerr).Msg(err.Error())
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			log.Error().Err(apiErr).Msgf("[%s] %s", apiErr.ErrorCode(), apiErr.ErrorMessage())
 		}
 		return true
 	}
@@ -112,31 +113,36 @@ func injectParameters(references map[string]string, env *sanitizedEnv) error {
 	ssmPath := os.Getenv("PIGGY_AWS_SSM_PARAMETER_PATH") // "/exp/sample/test"
 	region := os.Getenv("PIGGY_AWS_REGION")              // "ap-southeast-1"
 	// Create a SSM client
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
-	if awsErr(err) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	if err != nil {
 		return err
 	}
-	pm := ssm.New(sess)
-	input := &ssm.GetParametersByPathInput{
-		Path:           aws.String(ssmPath),
-		Recursive:      aws.Bool(true),
-		WithDecryption: aws.Bool(true),
-	}
-
-	var result []*ssm.Parameter
-	fn := func(output *ssm.GetParametersByPathOutput, _ bool) bool {
-		result = append(result, output.Parameters...)
-		return true
-	}
-	if err := pm.GetParametersByPathPages(input, fn); err != nil {
-		return err
-	}
+	pm := ssm.NewFromConfig(cfg)
+	// Get parameter values
+	var nextToken *string
 	secrets := make(map[string]string)
-	for _, param := range result {
-		name := filepath.Base(*param.Name)
-		secrets[name] = *param.Value
+	for {
+		input := &ssm.GetParametersByPathInput{
+			Path:           aws.String(ssmPath),
+			Recursive:      aws.Bool(true),
+			WithDecryption: aws.Bool(true),
+			MaxResults:     aws.Int32(10),
+			NextToken:      nextToken,
+		}
+		output, err := pm.GetParametersByPath(context.TODO(), input)
+		if awsErr(err) {
+			return err
+		}
+		for _, param := range output.Parameters {
+			name := filepath.Base(*param.Name)
+			secrets[name] = *param.Value
+		}
+		if output.NextToken == nil {
+			break
+		}
+		nextToken = output.NextToken
 	}
 	doSanitize(references, env, secrets)
 	return nil
@@ -149,37 +155,34 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) error {
 	// region := "ap-southeast-1"
 
 	// Create a Secrets Manager client
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
-	if awsErr(err) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	if err != nil {
 		return err
 	}
-	svc := secretsmanager.New(sess)
-
+	sm := secretsmanager.NewFromConfig(cfg)
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(secretName),
 		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
 	}
-
-	result, err := svc.GetSecretValue(input)
+	output, err := sm.GetSecretValue(context.TODO(), input)
 	if awsErr(err) {
 		return err
 	}
 
 	// Decrypts secret using the associated KMS CMK.
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
-	if result.SecretString != nil {
+	if output.SecretString != nil {
 		var secrets map[string]string
-		if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
+		if err := json.Unmarshal([]byte(*output.SecretString), &secrets); err != nil {
 			log.Error().Msgf("Error while unmarshal secret %v", err)
 		}
 		doSanitize(references, env, secrets)
 	} else {
-		// TODO how to mount a binary secret into ENV?
-		log.Info().Msgf("A binary secret is not supported yet")
-		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
-		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
+		log.Info().Msgf("A binary secret is not supported")
+		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(output.SecretBinary)))
+		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, output.SecretBinary)
 		// if err != nil {
 		// 	log.Error().Msgf("Base64 Decode Error: %v", err)
 		// 	return
@@ -322,10 +325,11 @@ func install(src, dst string) error {
 
 // piggy-env install {location}
 // piggy-env {flag} -- {command}
-//  flag:
-//    --standalone
-//    --initial-delay
-//    --retry
+//
+//	flag:
+//	  --standalone
+//	  --initial-delay
+//	  --retry
 func main() {
 	debug, _ := strconv.ParseBool(os.Getenv("PIGGY_DEBUG"))
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)

@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/smithy-go"
 	authv1 "k8s.io/api/authentication/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,7 +59,7 @@ func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, 
 
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME":            true,
-	"PIGGY_SSM_AWS_PARAMETER_PATH":     true,
+	"PIGGY_AWS_SSM_PARAMETER_PATH":     true,
 	"PIGGY_AWS_REGION":                 true,
 	"PIGGY_POD_NAME":                   true,
 	"PIGGY_DEBUG":                      true,
@@ -83,10 +83,9 @@ func (e *SanitizedEnv) append(name string, value string) {
 
 func awsErr(err error) bool {
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			log.Error().Err(aerr).Msg(aerr.Code())
-		} else {
-			log.Error().Err(aerr).Msg(err.Error())
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			log.Error().Err(apiErr).Msgf("[%s] %s", apiErr.ErrorCode(), apiErr.ErrorMessage())
 		}
 		return true
 	}
@@ -95,70 +94,74 @@ func awsErr(err error) bool {
 
 func injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a SSM client
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(config.AWSRegion),
-	})
-	if awsErr(err) {
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(config.AWSRegion),
+	)
+	if err != nil {
 		return err
 	}
-	pm := ssm.New(sess)
-	input := &ssm.GetParametersByPathInput{
-		Path:           aws.String(config.AWSSSMParameterPath),
-		Recursive:      aws.Bool(true),
-		WithDecryption: aws.Bool(true),
-	}
-
-	var result []*ssm.Parameter
-	fn := func(output *ssm.GetParametersByPathOutput, _ bool) bool {
-		result = append(result, output.Parameters...)
-		return true
-	}
-	if err := pm.GetParametersByPathPages(input, fn); err != nil {
-		return err
-	}
+	pm := ssm.NewFromConfig(cfg)
+	// Get parameter values
+	var nextToken *string
 	secrets := make(map[string]string)
-	for _, param := range result {
-		name := filepath.Base(*param.Name)
-		secrets[name] = *param.Value
+
+	for {
+		input := &ssm.GetParametersByPathInput{
+			Path:           aws.String(config.AWSSSMParameterPath),
+			Recursive:      aws.Bool(true),
+			WithDecryption: aws.Bool(true),
+			MaxResults:     aws.Int32(10),
+			NextToken:      nextToken,
+		}
+		output, err := pm.GetParametersByPath(context.TODO(), input)
+		if awsErr(err) {
+			return err
+		}
+		for _, param := range output.Parameters {
+			name := filepath.Base(*param.Name)
+			secrets[name] = *param.Value
+		}
+		if output.NextToken == nil {
+			break
+		}
+		nextToken = output.NextToken
 	}
 	return processSecret(config, secrets, env)
 }
 
 func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a Secrets Manager client
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(config.AWSRegion),
-	})
-	if awsErr(err) {
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(config.AWSRegion),
+	)
+	if err != nil {
 		return err
 	}
-	sm := secretsmanager.New(sess)
+	sm := secretsmanager.NewFromConfig(cfg)
 
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(config.AWSSecretName),
 		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
-	result, err := sm.GetSecretValue(input)
+	output, err := sm.GetSecretValue(context.TODO(), input)
 	if awsErr(err) {
 		return err
 	}
 
 	// Decrypts secret using the associated KMS CMK.
 	// Depending on whether the secret is a string or binary, one of these fields will be populated.
-	if result.SecretString != nil {
+	if output.SecretString != nil {
 		var secrets map[string]string
-		err := json.Unmarshal([]byte(*result.SecretString), &secrets)
+		err := json.Unmarshal([]byte(*output.SecretString), &secrets)
 		if err != nil {
 			return err
 		}
-
 		return processSecret(config, secrets, env)
 	} else {
-		// TODO how to mount a binary secret into ENV?
-		log.Info().Msgf("A binary secret is not supported yet")
-		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(result.SecretBinary)))
-		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, result.SecretBinary)
+		log.Info().Msgf("A binary secret is not supported")
+		// decodedBinarySecretBytes := make([]byte, base64.StdEncoding.DecodedLen(len(output.SecretBinary)))
+		// len, err := base64.StdEncoding.Decode(decodedBinarySecretBytes, output.SecretBinary)
 		// if err != nil {
 		// 	return err
 		// }
