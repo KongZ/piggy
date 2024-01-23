@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 type containerInfo struct {
@@ -46,12 +45,13 @@ func isAllowedToCache(container corev1.Container) bool {
 	return false
 }
 
-func getImageConfig(ctx context.Context, config *service.PiggyConfig, client kubernetes.Interface, container containerInfo) (*v1.Config, error) {
+func getImageConfig(ctx context.Context, config *service.PiggyConfig, container containerInfo) (*v1.Config, error) {
 	log.Debug().Msgf("Reading image %s", container.Image)
 	kc, err := k8schain.NewInCluster(ctx, k8schain.Options{
 		Namespace:          container.Namespace,
 		ServiceAccountName: container.ServiceAccountName,
 		ImagePullSecrets:   container.ImagePullSecrets,
+		UseMountSecrets:    true,
 	})
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func getImageConfig(ctx context.Context, config *service.PiggyConfig, client kub
 }
 
 // GetImageConfig returns entrypoint and command of container
-func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.PiggyConfig, client kubernetes.Interface, namespace string, container corev1.Container, podSpec corev1.PodSpec) (*v1.Config, error) {
+func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.PiggyConfig, namespace string, container corev1.Container, podSpec corev1.PodSpec) (*v1.Config, error) {
 	if imageConfig, found := r.imageCache[container.Image]; found {
 		log.Debug().Msgf("found image %s in cache", container.Image)
 		return imageConfig, nil
@@ -101,7 +101,6 @@ func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.Pigg
 		ServiceAccountName: podSpec.ServiceAccountName,
 		Image:              container.Image,
 	}
-	log.Debug().Msgf("Container info %+v", containerInfo)
 	if config.ImagePullSecretNamespace != "" {
 		containerInfo.Namespace = config.ImagePullSecretNamespace
 	}
@@ -118,7 +117,8 @@ func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.Pigg
 	if config.ImagePullSecret != "" {
 		containerInfo.ImagePullSecrets = append(containerInfo.ImagePullSecrets, config.ImagePullSecret)
 	}
-	imageConfig, err := getImageConfig(ctx, config, client, containerInfo)
+	log.Debug().Msgf("Container info %+v", containerInfo)
+	imageConfig, err := getImageConfig(ctx, config, containerInfo)
 	if imageConfig != nil && isAllowedToCache(container) {
 		r.imageCache[container.Image] = imageConfig
 	}
