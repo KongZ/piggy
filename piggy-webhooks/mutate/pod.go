@@ -30,7 +30,7 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 	// if the container has no explicitly specified command
 	if len(entry) == 0 {
 		// read docker image
-		imageConfig, err := m.registry.GetImageConfig(m.context, config, m.k8sClient, pod.ObjectMeta.Namespace, *container, pod.Spec)
+		imageConfig, err := m.registry.GetImageConfig(m.context, config, pod.ObjectMeta.Namespace, *container, pod.Spec)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 		}
 	}
 	for _, env := range envVars {
-		if strings.HasPrefix(env.Value, "piggy:") {
+		if strings.HasPrefix(env.Value, service.PrefixPiggy) {
 			mutate = true
 			break
 		}
@@ -173,7 +173,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 	}
 	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying volume mounts '%s' containers ...", container.Name)
 	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-		Name:      "piggy-env",
+		Name:      service.VolumeNamePiggy,
 		MountPath: "/piggy/",
 	})
 	log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Modifying command '%s' containers ...", container.Name)
@@ -200,7 +200,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		signature := make(Signature)
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Adding volumes to podspec ...")
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-			Name: "piggy-env",
+			Name: service.VolumeNamePiggy,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{
 					Medium: corev1.StorageMediumMemory,
@@ -226,7 +226,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 			Args:            []string{"install", "/piggy"},
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      "piggy-env",
+					Name:      service.VolumeNamePiggy,
 					MountPath: "/piggy/",
 				},
 			},

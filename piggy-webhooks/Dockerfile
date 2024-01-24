@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.21.5-bookworm as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.5-bookworm AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
@@ -33,7 +33,7 @@ RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
 RUN gosec -fmt=text ./...
 
 # Build executable binary
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
+RUN CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -v -o piggy-webhooks -ldflags="$LDFLAGS" .
 
 ################################
 # Main image

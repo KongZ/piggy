@@ -122,7 +122,7 @@ func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVa
 			return nil, err
 		}
 		value := data[env.ValueFrom.ConfigMapKeyRef.Key]
-		if strings.HasPrefix(value, "piggy:") {
+		if strings.HasPrefix(value, service.PrefixPiggy) {
 			fromCM := corev1.EnvVar{
 				Name:  env.Name,
 				Value: value,
@@ -139,7 +139,7 @@ func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVa
 			return nil, err
 		}
 		value := string(data[env.ValueFrom.SecretKeyRef.Key])
-		if strings.HasPrefix(value, "piggy:") {
+		if strings.HasPrefix(value, service.PrefixPiggy) {
 			fromSecret := corev1.EnvVar{
 				Name:  env.Name,
 				Value: value,
@@ -165,7 +165,7 @@ func (mw *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([
 				}
 			}
 			for key, value := range data {
-				if strings.HasPrefix(value, "piggy:") {
+				if strings.HasPrefix(value, service.PrefixPiggy) {
 					fromCM := corev1.EnvVar{
 						Name:  key,
 						Value: value,
@@ -185,7 +185,7 @@ func (mw *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([
 			}
 			for key, v := range data {
 				value := string(v)
-				if strings.HasPrefix(value, "piggy:") {
+				if strings.HasPrefix(value, service.PrefixPiggy) {
 					fromSecret := corev1.EnvVar{
 						Name:  key,
 						Value: value,

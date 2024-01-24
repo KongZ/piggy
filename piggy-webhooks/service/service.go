@@ -16,6 +16,9 @@ var (
 	ErrorAuthorized = errors.New("decision not allowed")
 )
 
+const VolumeNamePiggy = "piggy-env"
+const PrefixPiggy = "piggy:"
+
 const Namespace = "piggysec.com/"
 const AWSSecretName = "aws-secret-name"                                               // AWS secret name
 const AWSSSMParameterPath = "aws-ssm-parameter-path"                                  // AWS SSM parameter path

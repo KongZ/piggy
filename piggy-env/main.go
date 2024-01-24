@@ -30,6 +30,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const PrefixPiggy = "piggy:"
+
 type sanitizedEnv struct {
 	Env []string `json:"env"`
 }
@@ -88,7 +90,7 @@ func awsErr(err error) bool {
 
 func doSanitize(references map[string]string, env *sanitizedEnv, secrets map[string]string) {
 	for refName, refValue := range references {
-		if strings.HasPrefix(refValue, "piggy:") {
+		if strings.HasPrefix(refValue, PrefixPiggy) {
 			match := schemeRegx.FindAllStringSubmatch(refValue, -1)
 			if len(match) == 1 {
 				if val, ok := secrets[match[0][1]]; ok {
@@ -471,7 +473,7 @@ func main() {
 	if !ignoreNoEnv {
 		for _, v := range sanitized.Env {
 			split := strings.SplitN(v, "=", 2)
-			if strings.HasPrefix(strings.ToUpper(split[1]), strings.ToUpper("piggy:")) {
+			if strings.HasPrefix(strings.ToUpper(split[1]), strings.ToUpper(PrefixPiggy)) {
 				log.Fatal().Msgf("[%s] not found", split[0])
 			}
 		}
