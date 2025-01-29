@@ -340,6 +340,10 @@ pods and injecting secrets into containers
 
 See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md)
 
+## Choose the Secret Version
+
+You can specify the unique identifier of the version of the secret to retrieve. If you don't specify the piggy returns the AWSCURRENT version. To specify the secret version, annotate the pods with `piggysec.com/aws-secret-version` where the value is the unique identifier of the version.
+
 ## Annotations
 
 See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)

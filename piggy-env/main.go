@@ -40,6 +40,7 @@ var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME":            true,
 	"PIGGY_AWS_SSM_PARAMETER_PATH":     true,
 	"PIGGY_AWS_REGION":                 true,
+	"PIGGY_AWS_SECRET_VERSION":         true,
 	"PIGGY_POD_NAME":                   true,
 	"PIGGY_DEBUG":                      true,
 	"PIGGY_STANDALONE":                 true,
@@ -151,8 +152,13 @@ func injectParameters(references map[string]string, env *sanitizedEnv) error {
 }
 
 func injectSecrets(references map[string]string, env *sanitizedEnv) error {
-	secretName := os.Getenv("PIGGY_AWS_SECRET_NAME") // "exp/sample/test"
-	region := os.Getenv("PIGGY_AWS_REGION")          // "ap-southeast-1"
+	secretName := os.Getenv("PIGGY_AWS_SECRET_NAME")       // "exp/sample/test"
+	region := os.Getenv("PIGGY_AWS_REGION")                // "ap-southeast-1"
+	secretVersion := os.Getenv("PIGGY_AWS_SECRET_VERSION") // "AWS_CURRENT"
+	if secretName == "" {
+		secretVersion = "AWS_CURRENT"
+	}
+
 	// secretName := "exp/sample/test"
 	// region := "ap-southeast-1"
 
@@ -166,7 +172,7 @@ func injectSecrets(references map[string]string, env *sanitizedEnv) error {
 	sm := secretsmanager.NewFromConfig(cfg)
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(secretName),
-		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
+		VersionStage: aws.String(secretVersion), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 	output, err := sm.GetSecretValue(context.TODO(), input)
 	if awsErr(err) {
@@ -271,7 +277,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 		return fmt.Errorf("error while reading secret %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(string(body))
+		return fmt.Errorf("%s", string(body))
 	}
 	var secrets map[string]string
 	if err := json.Unmarshal(body, &secrets); err != nil {
