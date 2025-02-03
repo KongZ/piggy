@@ -4,37 +4,39 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
 
 ## Annotations
 
-| Name                                                                                       | Type    | Default | Location | Notes |
-|--------------------------------------------------------------------------------------------|---------|---------|----------|-------|
-| [piggysec.com/aws-secret-name](#aws-secret-name)                                           | string  |         | Pods     |       |
-| [piggysec.com/aws-region](#aws-region)                                                     | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-image](#piggy-env-image)                                           | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-image-pull-policy](#piggy-env-image-pull-policy)                   | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-resource-cpu-request](#piggy-env-resource-cpu-request)             | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-resource-memory-request](#piggy-env-resource-memory-request)       | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-resource-cpu-limit](#piggy-env-resource-cpu-limit)                 | string  |         | Pods     |       |
-| [piggysec.com/piggy-env-resource-memory-limit](#piggy-env-resource-memory-limit)           | string  |         | Pods     |       |
-| [piggysec.com/piggy-psp-allow-privilege-escalation](#piggy-psp-allow-privilege-escalation) | boolean | false   | Pods     |       |
-| [piggysec.com/piggy-address](#piggy-address)                                               | string  |         | Pods     |       |
-| [piggysec.com/piggy-skip-verify-tls](#piggy-skip-verify-tls)                               | boolean | true    | Pods     |       |
-| [piggysec.com/piggy-ignore-no-env](#piggy-ignore-no-env)                                   | boolean | false   | Pods     |       |
-| [piggysec.com/piggy-enforce-integrity](#piggy-enforce-integrity)                           | boolean | true    | Pods     |       |
-| [piggysec.com/debug](#debug)                                                               | boolean | false   | Pods     |       |
-| [piggysec.com/standalone](#standalone)                                                     | boolean | false   | Pods     |       |
-| [piggysec.com/image-pull-secret](#image-pull-secret)                                       | string  |         | Pods     |       |
-| [piggysec.com/image-pull-secret-namespace](#image-pull-secret-namespace)                   | string  |         | Pods     |       |
-| [piggysec.com/image-skip-verify-registry](#image-skip-verify-registry)                     | string  |         | Pods     |       |
-| [piggysec.com/piggy-enforce-service-account](#piggy-enforce-service-account)               | bool    | false   | Pods     |       |
-| [piggysec.com/piggy-default-secret-name-prefix](#piggy-default-secret-name-prefix)         | string  |         | Pods     |       |
-| [piggysec.com/piggy-default-secret-name-suffix](#piggy-default-secret-name-suffix)         | string  |         | Pods     |       |
-| [piggysec.com/piggy-dns-resolver](#piggy-dns-resolver)                                     | string  |         | Pods     |       |
-| [piggysec.com/piggy-initial-delay](#piggy-initial-delay)                                     | string     |        | Pods     |       |
-| [piggysec.com/piggy-number-of-retry](#piggy-number-of-retry)                                     | int     | 0       | Pods     |       |
+| Name                                                                                       | Type    | Default     | Location | Notes |
+| ------------------------------------------------------------------------------------------ | ------- | ----------- | -------- | ----- |
+| [piggysec.com/aws-secret-name](#aws-secret-name)                                           | string  |             | Pods     |       |
+| [piggysec.com/aws-region](#aws-region)                                                     | string  |             | Pods     |       |
+| [piggysec.com/aws-secret-version](#aws-secret-version)                                     | string  | AWS_CURRENT | Pods     |       |
+| [piggysec.com/piggy-env-image](#piggy-env-image)                                           | string  |             | Pods     |       |
+| [piggysec.com/piggy-env-image-pull-policy](#piggy-env-image-pull-policy)                   | string  |             | Pods     |       |
+| [piggysec.com/piggy-env-resource-cpu-request](#piggy-env-resource-cpu-request)             | string  |             | Pods     |       |
+| [piggysec.com/piggy-env-resource-memory-request](#piggy-env-resource-memory-request)       | string  |             | Pods     |       |
+| [piggysec.com/piggy-env-resource-cpu-limit](#piggy-env-resource-cpu-limit)                 | string  |             | Pods     |       |
+| [piggysec.com/piggy-env-resource-memory-limit](#piggy-env-resource-memory-limit)           | string  |             | Pods     |       |
+| [piggysec.com/piggy-psp-allow-privilege-escalation](#piggy-psp-allow-privilege-escalation) | boolean | false       | Pods     |       |
+| [piggysec.com/piggy-address](#piggy-address)                                               | string  |             | Pods     |       |
+| [piggysec.com/piggy-skip-verify-tls](#piggy-skip-verify-tls)                               | boolean | true        | Pods     |       |
+| [piggysec.com/piggy-ignore-no-env](#piggy-ignore-no-env)                                   | boolean | false       | Pods     |       |
+| [piggysec.com/piggy-enforce-integrity](#piggy-enforce-integrity)                           | boolean | true        | Pods     |       |
+| [piggysec.com/debug](#debug)                                                               | boolean | false       | Pods     |       |
+| [piggysec.com/standalone](#standalone)                                                     | boolean | false       | Pods     |       |
+| [piggysec.com/image-pull-secret](#image-pull-secret)                                       | string  |             | Pods     |       |
+| [piggysec.com/image-pull-secret-namespace](#image-pull-secret-namespace)                   | string  |             | Pods     |       |
+| [piggysec.com/image-skip-verify-registry](#image-skip-verify-registry)                     | string  |             | Pods     |       |
+| [piggysec.com/piggy-enforce-service-account](#piggy-enforce-service-account)               | bool    | false       | Pods     |       |
+| [piggysec.com/piggy-default-secret-name-prefix](#piggy-default-secret-name-prefix)         | string  |             | Pods     |       |
+| [piggysec.com/piggy-default-secret-name-suffix](#piggy-default-secret-name-suffix)         | string  |             | Pods     |       |
+| [piggysec.com/piggy-dns-resolver](#piggy-dns-resolver)                                     | string  |             | Pods     |       |
+| [piggysec.com/piggy-initial-delay](#piggy-initial-delay)                                   | string  |             | Pods     |       |
+| [piggysec.com/piggy-number-of-retry](#piggy-number-of-retry)                               | int     | 0           | Pods     |       |
 
 ## AWS Secret Manager
 
   - <a name="aws-secret-name">`piggysec.com/aws-secret-name`</a> specifies a AWS secret name e.g. "/myapp/name"
   - <a name="aws-region">`piggysec.com/aws-region`</a> specifies a AWS secret manager region e.g. "ap-southeast-1"
+  - <a name="aws-secret-version">`piggysec.com/aws-secret-version`</a> specifies a AWS secret version. Default value is AWS_CURRENT
 
 ## piggy-env settings
 
@@ -46,6 +48,7 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
   - <a name="piggy-env-resource-memory-limit">`piggysec.com/piggy-env-resource-memory-limit`</a> overrides a piggy-env init-container   resource memory limit. Default to `64Mi`
   - <a name="piggy-psp-allow-privilege-escalation">`piggysec.com/piggy-psp-allow-privilege-escalation`</a> allow a piggy-env init-container   to run as root. Default to `false`
   - <a name="piggy-address">`piggysec.com/piggy-address`</a> an endpoint of piggy-webhooks. This is required when it is running in proxy   mode.
+  - <a name="piggy-skip-verify-tls">`piggysec.com/piggy-skip-verify-tls`</a> Do not verify TLS certificate between application and piggy-webhooks.
   - <a name="piggy-ignore-no-env">`piggysec.com/piggy-ignore-no-env`</a> do not terminate the container if no variable found on secret   manager. Default to `false`. Set this value to `false` is recommended in most application. The container will not start if environment   variable is missing.
   - <a name="piggy-enforce-integrity">`piggysec.com/piggy-enforce-integrity`</a> enforce checking command integrity before inject secrets   into. Default to `true`. Set this value to `true` is recommended in most application. Set to `false` will allow piggy-env to run on   different arguments
   - <a name="debug">`piggysec.com/debug`</a> allows to run piggy-env in debug mode. Default to `false`.

@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.21.5-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.23.5-bookworm AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
