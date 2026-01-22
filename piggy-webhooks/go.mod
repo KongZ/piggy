@@ -102,3 +102,10 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+require github.com/stretchr/testify v1.8.4
+
+require (
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+)
