@@ -66,8 +66,8 @@ func TestGetIntValue(t *testing.T) {
 	annotations := map[string]string{
 		Namespace + "test-int": "123",
 	}
-	os.Setenv("TEST_INT", "456")
-	defer os.Unsetenv("TEST_INT")
+	os.Setenv("TEST_INT_GETINTVALUE", "456")
+	defer os.Unsetenv("TEST_INT_GETINTVALUE")
 
 	assert.Equal(t, 123, GetIntValue(annotations, "test-int", 0))
 	assert.Equal(t, 456, GetIntValue(nil, "test-int", 0))

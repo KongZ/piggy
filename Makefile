@@ -105,7 +105,7 @@ docker-piggy-multi: ## Build a piggy-env and piggy-webhooks container image in m
 .PHONY: docker-piggy-multi-push
 docker-piggy-multi-push: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
 docker-piggy-multi-push: ## Build a piggy-env and piggy-webhooks container image in multi-architect and push to GCR
-	@$(CONTAINER_TOOL) login ghcr.io -u USERNAME -p $(CR_PAT)
+	@echo "$(CR_PAT)" | $(CONTAINER_TOOL) login ghcr.io -u USERNAME --password-stdin
 	@echo "Building architecture ${BUILD_ARCH}"
 	$(CONTAINER_TOOL) buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--push \
