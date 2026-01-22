@@ -22,11 +22,13 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
+# Install linting tools
+RUN go install github.com/securego/gosec/v2/cmd/gosec@v2.22.0
+RUN go install honnef.co/go/tools/cmd/staticcheck@v0.5.1
+
 # Copy files
 COPY . .
 
-RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
-RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 RUN go mod vendor
 RUN CGO_ENABLED=0 go vet ./...
 RUN CGO_ENABLED=0 staticcheck -f "stylish" ./...
