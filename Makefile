@@ -1,5 +1,6 @@
 # Project variables
 PACKAGE = github.com/KongZ/piggy
+CONTAINER_TOOL ?= nerdctl
 DOCKER_REGISTRY ?= ghcr.io/kongz
 PIGGY_ENV_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-env
 PIGGY_WEBHOOK_DOCKER_IMAGE = ${DOCKER_REGISTRY}/piggy-webhooks
@@ -17,7 +18,7 @@ ifeq (${VERBOSE}, 1)
 	GOFLAGS += -v
 endif
 
-# Docker variables
+# Container variables
 ifeq ($(BUILD_ARCH), linux/amd64)
 	DOCKER_TAG = ${VERSION}
 else
@@ -66,9 +67,9 @@ build-debug: GOFLAGS += -gcflags "all=-N -l"
 build-debug: build ## Build a binary with remote debugging capabilities
 
 .PHONY: docker-piggy-env
-docker-piggy-env: ## Build a piggy-env Docker image
+docker-piggy-env: ## Build a piggy-env container image
 	@echo "Building architecture ${BUILD_ARCH}"
-	docker build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+	$(CONTAINER_TOOL) build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--platform $(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
@@ -76,8 +77,8 @@ docker-piggy-env: ## Build a piggy-env Docker image
 		-f piggy-env/Dockerfile piggy-env
 
 .PHONY: docker-piggy-webhooks
-docker-piggy-webhooks: ## Build a piggy-webhooks Docker image
-	docker build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+docker-piggy-webhooks: ## Build a piggy-webhooks container image
+	$(CONTAINER_TOOL) build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--platform $(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
@@ -86,15 +87,15 @@ docker-piggy-webhooks: ## Build a piggy-webhooks Docker image
 
 .PHONY: docker-piggy-multi
 docker-piggy-multi: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
-docker-piggy-multi: ## Build a piggy-env and piggy-webhooks Docker image in multi-architect
+docker-piggy-multi: ## Build a piggy-env and piggy-webhooks container image in multi-architect
 	@echo "Building architecture ${BUILD_ARCH}"
-	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+	$(CONTAINER_TOOL) buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-env/Dockerfile piggy-env
-	docker buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+	$(CONTAINER_TOOL) buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
@@ -103,17 +104,17 @@ docker-piggy-multi: ## Build a piggy-env and piggy-webhooks Docker image in mult
 
 .PHONY: docker-piggy-multi-push
 docker-piggy-multi-push: BUILD_ARCH := $(strip $(BUILD_ARCH)),linux/arm64
-docker-piggy-multi-push: ## Build a piggy-env and piggy-webhooks Docker image in multi-architect and push to GCR
-	@docker login ghcr.io -u USERNAME -p $(CR_PAT)
+docker-piggy-multi-push: ## Build a piggy-env and piggy-webhooks container image in multi-architect and push to GCR
+	@echo "$(CR_PAT)" | $(CONTAINER_TOOL) login ghcr.io -u USERNAME --password-stdin
 	@echo "Building architecture ${BUILD_ARCH}"
-	docker buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
+	$(CONTAINER_TOOL) buildx build -t ${PIGGY_ENV_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--push \
 		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \
 		--build-arg=COMMIT_HASH=$(COMMIT_HASH) \
 		--build-arg=BUILD_DATE=$(BUILD_DATE) \
 		-f piggy-env/Dockerfile piggy-env
-	docker buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
+	$(CONTAINER_TOOL) buildx build -t ${PIGGY_WEBHOOK_DOCKER_IMAGE}:${DOCKER_TAG} \
 		--push \
 		--platform=$(BUILD_ARCH) \
 		--build-arg=VERSION=$(VERSION) \

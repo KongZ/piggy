@@ -277,7 +277,7 @@ func requestSecrets(references map[string]string, env *sanitizedEnv, sig []byte)
 		return fmt.Errorf("error while reading secret %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s", string(body))
+		return fmt.Errorf("error while requesting secret %v", string(body))
 	}
 	var secrets map[string]string
 	if err := json.Unmarshal(body, &secrets); err != nil {
