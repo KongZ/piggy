@@ -20,8 +20,10 @@ const VolumeNamePiggy = "piggy-env"
 const PrefixPiggy = "piggy:"
 
 const Namespace = "piggysec.com/"
-const AWSSecretName = "aws-secret-name"                                               // AWS secret name
-const AWSSSMParameterPath = "aws-ssm-parameter-path"                                  // AWS SSM parameter path
+const AWSSecretName = "aws-secret-name"              // AWS secret name
+const AWSSSMParameterPath = "aws-ssm-parameter-path" // AWS SSM parameter path
+// #nosec G101 it is not a credential
+const AWSSecretVersion = "aws-secret-version"                                         // AWS secret version
 const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
 const ConfigPiggyEnvImage = "piggy-env-image"                                         // The piggy-env image URL
 const ConfigPiggyEnvImagePullPolicy = "piggy-env-image-pull-policy"                   // The piggy-env image pull policy
@@ -66,6 +68,7 @@ type PiggyConfig struct {
 	AWSSecretName                    string            `json:"awsSecretName"`
 	AWSRegion                        string            `json:"awsRegion"`
 	AWSSSMParameterPath              string            `json:"awsSSMParameterPath"`
+	AWSSecretVersion                 string            `json:"awsSecretVersion"`
 	Debug                            bool              `json:"debug"`
 	ImagePullSecret                  string            `json:"imagePullSecret"`
 	ImagePullSecretNamespace         string            `json:"imagePullSecretNamespace"`

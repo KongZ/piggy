@@ -141,7 +141,7 @@ func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(config.AWSSecretName),
-		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
+		VersionStage: aws.String(config.AWSSecretVersion), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
 	output, err := sm.GetSecretValue(context.TODO(), input)
@@ -252,6 +252,7 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	config := &PiggyConfig{
 		AWSSecretName:                GetStringValue(annotations, AWSSecretName, fmt.Sprintf("%s%s/%s%s", defaultPrefix, namespace, pod.Spec.ServiceAccountName, defaultSuffix)),
 		AWSSSMParameterPath:          GetStringValue(annotations, AWSSSMParameterPath, ""),
+		AWSSecretVersion:             GetStringValue(annotations, AWSSecretVersion, "AWSCURRENT"),
 		AWSRegion:                    GetStringValue(annotations, ConfigAWSRegion, ""),
 		PodServiceAccountName:        tokenSa,
 		PiggyEnforceIntegrity:        GetBoolValue(annotations, ConfigPiggyEnforceIntegrity, true),
