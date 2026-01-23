@@ -9,19 +9,24 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
       - name: Lint Code Base
-        uses: github/super-linter@v5
+        uses: super-linter/super-linter@v7
         env:
           VALIDATE_ALL_CODEBASE: false
+          VALIDATE_CHECKOV: false
+          VALIDATE_KUBERNETES_KUBECONFORM: false
+          VALIDATE_GO: false # disable the linting process of the individual Go files
           VALIDATE_YAML: false
-          VALIDATE_KUBERNETES_KUBEVAL: false
-          VALIDATE_GO: false
-          DEFAULT_BRANCH: main
+          VALIDATE_YAML_PRETTIER: false
+          VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_GO_RELEASER: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FILTER_REGEX_EXCLUDE: ".*(demo)/.*"
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
