@@ -3,7 +3,7 @@
 [![CodeQL](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/piggy)](https://artifacthub.io/packages/search?repo=piggy)
 
-![piggy logo](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png "Piggy Logo")
+![piggy logo](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/gopher-piggy.png "Piggy Logo")
 
 # Piggy
 

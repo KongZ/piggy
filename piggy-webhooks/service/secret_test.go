@@ -15,7 +15,7 @@ import (
 
 func setupTest(t *testing.T, objects ...runtime.Object) (context.Context, *fake.Clientset, *Service) {
 	ctx := context.Background()
-	client := fake.NewSimpleClientset(objects...)
+	client := fake.NewClientset(objects...)
 	svc, err := NewService(ctx, client)
 	assert.NoError(t, err)
 	return ctx, client, svc

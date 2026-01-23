@@ -23,7 +23,7 @@ func TestIsKubeNamespace(t *testing.T) {
 
 func TestNewMutating(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewSimpleClientset()
+	client := fake.NewClientset()
 	m, err := NewMutating(ctx, client)
 	assert.NoError(t, err)
 	assert.NotNil(t, m)
@@ -31,7 +31,7 @@ func TestNewMutating(t *testing.T) {
 }
 
 func TestGenerateUid(t *testing.T) {
-	m, _ := NewMutating(context.Background(), fake.NewSimpleClientset())
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	uid1 := m.generateUid()
 	uid2 := m.generateUid()
 	assert.NotEmpty(t, uid1)
@@ -58,7 +58,7 @@ func TestLookForValueFrom(t *testing.T) {
 		},
 	}
 	
-	client := fake.NewSimpleClientset(cm, secret)
+	client := fake.NewClientset(cm, secret)
 	m, _ := NewMutating(ctx, client)
 	
 	// Test ConfigMap match
@@ -119,7 +119,7 @@ func TestLookForEnvFrom(t *testing.T) {
 		},
 	}
 	
-	client := fake.NewSimpleClientset(cm)
+	client := fake.NewClientset(cm)
 	m, _ := NewMutating(ctx, client)
 	
 	envFrom := []corev1.EnvFromSource{
@@ -139,7 +139,7 @@ func TestLookForEnvFrom(t *testing.T) {
 
 func TestApplyPiggy(t *testing.T) {
 	ctx := context.Background()
-	client := fake.NewSimpleClientset()
+	client := fake.NewClientset()
 	m, _ := NewMutating(ctx, client)
 	
 	pod := &corev1.Pod{
