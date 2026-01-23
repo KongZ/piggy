@@ -46,12 +46,6 @@ spec:
               value: "{{ .Values.mutate.image.repository }}:{{ include "piggy-webhooks.piggy-env.version" . }}"
             - name: PIGGY_ENV_IMAGE_PULL_POLICY
               value: "{{ .Values.mutate.image.pullPolicy }}"
-          {{- if .Values.aws.roleArn }}
-            - name: AWS_ROLE_ARN
-              value: "{{ .Values.aws.roleArn }}"
-            - name: AWS_WEB_IDENTITY_TOKEN_FILE
-              value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
-          {{- end }}
             {{- range $key, $val := .Values.env }}
             - name: {{  $key | quote | upper }}
               value: {{ $val | quote }}
@@ -75,11 +69,6 @@ spec:
           volumeMounts:
             - mountPath: /certs
               name: certs
-          {{- if .Values.aws.roleArn }}
-            - mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
-              name: aws-iam-token
-              readOnly: true
-          {{- end }}
           {{- if .Values.volumeMounts }}
             {{ toYaml .Values.volumeMounts | nindent 12 }}
           {{- end }}
@@ -103,16 +92,6 @@ spec:
           secret:
             defaultMode: 420
             secretName: {{ include "piggy-webhooks.certificate" . }}
-      {{- if .Values.aws.roleArn }}
-        - name: aws-iam-token
-          projected:
-            defaultMode: 420
-            sources:
-            - serviceAccountToken:
-                audience: sts.amazonaws.com
-                expirationSeconds: 86400
-                path: token
-      {{- end }}
       {{- if .Values.volumes }}
         {{ toYaml .Values.volumes | nindent 8 }}
       {{- end }}
