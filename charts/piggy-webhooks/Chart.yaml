@@ -5,7 +5,7 @@ type: application
 version: 0.6.2
 appVersion: "0.6.2"
 home: https://piggysec.com
-icon: https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/gopher-piggy.png
+icon: https://raw.githubusercontent.com/KongZ/piggy/refs/heads/main/docs/images/gopher-piggy.png
 sources:
   - https://www.github.com/KongZ/piggy
 maintainers:
