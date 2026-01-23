@@ -12,7 +12,7 @@ import (
 )
 
 func TestMutatePod_EmptyPod(t *testing.T) {
-	m, _ := NewMutating(context.Background(), fake.NewSimpleClientset())
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	config := &service.PiggyConfig{}
 	pod := &corev1.Pod{}
 	
@@ -22,7 +22,7 @@ func TestMutatePod_EmptyPod(t *testing.T) {
 }
 
 func TestMutatePod_InjectedPod(t *testing.T) {
-	m, _ := NewMutating(context.Background(), fake.NewSimpleClientset())
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	config := &service.PiggyConfig{
 		AWSSecretName: "my-secret",
 		PiggyImage:    "piggy-env:latest",
