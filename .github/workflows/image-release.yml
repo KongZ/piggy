@@ -55,8 +55,8 @@ jobs:
         id: docker_piggy-env
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./piggy-env/Dockerfile
+          context: ./piggy-env
+          file: Dockerfile
           platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ github.ref_name }}
@@ -120,8 +120,8 @@ jobs:
         id: docker_piggy-webhooks
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./piggy-webhooks/Dockerfile
+          context: ./piggy-webhooks
+          file: Dockerfile
           platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ github.ref_name }}
