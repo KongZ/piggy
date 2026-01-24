@@ -1,6 +1,6 @@
 apiVersion: v2
 name: piggy-webhooks
-description: Deploys a piggy-webhooks that inject enviroment variaiables from AWS Secret Manager
+description: Deploys a piggy-webhooks that inject environment variables from AWS Secrets Manager
 type: application
 version: 0.7.0
 appVersion: "0.7.0"
@@ -14,4 +14,4 @@ maintainers:
 keywords:
   - aws
   - eks
-  - secret manager
+  - secrets manager

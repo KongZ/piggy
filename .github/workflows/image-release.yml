@@ -3,9 +3,6 @@ on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
-env:
-  PIGGY_ENV_REGISTRY_IMAGE: ghcr.io/kongz/piggy-env
-  PIGGY_WEBHOOKS_REGISTRY_IMAGE: ghcr.io/kongz/piggy-webhooks
 
 jobs:
   release-piggy-env:
@@ -55,17 +52,17 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Piggy Env meta
-        id: meta
+        id: piggy-env-meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.PIGGY_ENV_REGISTRY_IMAGE }}
+          images: ghcr.io/kongz/piggy-env
 
       - name: Build piggy-env and push
         id: docker_piggy-env
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./piggy-env/Dockerfile
           platforms: ${{ matrix.platform }}
           build-args: |
             VERSION=${{ github.ref_name }}
@@ -73,9 +70,9 @@ jobs:
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
           load: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          tags: ${{ steps.piggy-env-meta.outputs.tags }}
+          labels: ${{ steps.piggy-env-meta.outputs.labels }}
+          annotations: ${{ steps.piggy-env-meta.outputs.annotations }}
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=piggy-env for retrieving secrets from AWS secret manager
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -127,17 +124,17 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Piggy Webhooks meta
-        id: meta
+        id: piggy-webhooks-meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.PIGGY_WEBHOOKS_REGISTRY_IMAGE }}
+          images: ghcr.io/kongz/piggy-webhooks
 
       - name: Build piggy-webhooks and push
         id: docker_piggy-webhooks
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./piggy-webhooks/Dockerfile
           platforms: ${{ matrix.platform }}
           build-args: |
             VERSION=${{ github.ref_name }}
@@ -145,10 +142,9 @@ jobs:
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
           load: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          tags: ${{ steps.piggy-webhooks-meta.outputs.tags }}
+          labels: ${{ steps.piggy-webhooks-meta.outputs.labels }}
+          annotations: ${{ steps.piggy-webhooks-meta.outputs.annotations }}
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=piggy-webhooks for mutating pods
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
