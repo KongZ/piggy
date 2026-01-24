@@ -1,0 +1,150 @@
+name: Build to GHCR
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  release-piggy-env:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Piggy Env meta
+        id: piggy-env-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/kongz/piggy-env
+
+      - name: Build piggy-env and push
+        id: docker_piggy-env
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./piggy-env/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT_HASH=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          load: true
+          push: true
+          tags: ${{ steps.piggy-env-meta.outputs.tags }}
+          labels: ${{ steps.piggy-env-meta.outputs.labels }}
+          annotations: ${{ steps.piggy-env-meta.outputs.annotations }}
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=piggy-env for retrieving secrets from AWS secret manager
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release-piggy-webhooks:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Piggy Webhooks meta
+        id: piggy-webhooks-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/kongz/piggy-webhooks
+
+      - name: Build piggy-webhooks and push
+        id: docker_piggy-webhooks
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./piggy-webhooks/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT_HASH=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          load: true
+          push: true
+          tags: ${{ steps.piggy-webhooks-meta.outputs.tags }}
+          labels: ${{ steps.piggy-webhooks-meta.outputs.labels }}
+          annotations: ${{ steps.piggy-webhooks-meta.outputs.annotations }}
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=piggy-webhooks for mutating pods
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

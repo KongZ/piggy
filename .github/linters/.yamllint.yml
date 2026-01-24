@@ -1,0 +1,9 @@
+# Use the default yamllint rules as a base
+extends: default
+rules:
+  document-start: false
+  line-length: false
+  braces: false
+# Ignore paths that contain Helm chart templates
+ignore: |
+  charts/**/templates/**/*.yaml
