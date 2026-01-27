@@ -16,6 +16,6 @@ vendor/
 
 .vscode
 
-# Binaries buildd
+# Binaries build
 piggy-env/piggy-env
 piggy-webhooks/piggy-webhooks
