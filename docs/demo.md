@@ -69,7 +69,7 @@ Check running piggy-webhooks pod
 ### Create demo pod
 
 Now piggy-webhooks pod is ready, create a pod with annotations to piggy-webhooks service, secret name, and aws-region.
-You can see a yaml file at [demo/proxy/pod.yaml](https://github.com/KongZ/piggy/tree/main/demo/proxy/pod.yaml)
+You can see a YAML file at [demo/proxy/pod.yaml](https://github.com/KongZ/piggy/tree/main/demo/proxy/pod.yaml)
 
 ```yaml
 apiVersion: v1

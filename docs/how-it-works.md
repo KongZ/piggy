@@ -139,7 +139,8 @@ kubectl -n piggy-webhooks logs deployment/piggy-webhooks
 ```
 
 The log will look like this:
-```
+
+```json
 {"level":"info","namespace":"my-ns","owner":"my-pod","time":"2026-01-27T11:27:47Z","message":"Pod of ReplicaSet 'my-pod' has been mutated (took 30.701µs)"}
 {"level":"info","namespace":"my-ns","pod_name":"my-pod","service_account":"my-ns:my-sa","secret_name":"my-ns/my-sa","time":"2026-01-27T12:30:02Z","message":"Request from [sa=my-ns:my-sa], [pod=my-pod] was successful"}
 ```
@@ -153,7 +154,8 @@ kubectl -n <namespace> logs <pod-name>
 ```
 
 The log will look like this:
-```
+
+```json
 {"level":"info","time":"2026-01-27T12:37:19Z","message":"Request secrets was successful"}
 ```
 This log shows that piggy-env has requested the secrets from Piggy Webhooks and the request was successful.
