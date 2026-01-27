@@ -19,7 +19,7 @@ func getSecurityContext(config *service.PiggyConfig, podSecurityContext *corev1.
 	sc := &corev1.SecurityContext{
 		AllowPrivilegeEscalation: &config.PiggyPspAllowPrivilegeEscalation,
 	}
-	if podSecurityContext.RunAsUser != nil {
+	if podSecurityContext != nil && podSecurityContext.RunAsUser != nil {
 		sc.RunAsUser = podSecurityContext.RunAsUser
 	}
 	return sc
@@ -195,6 +195,13 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 // MutatePod mutate pod
 func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (interface{}, error) {
 	start := time.Now()
+
+	// Check if already mutated
+	if _, ok := pod.ObjectMeta.Annotations[service.Namespace+service.ConfigPiggyUID]; ok {
+		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Str("pod_name", pod.ObjectMeta.Name).Msg("Pod already mutated, skipping ...")
+		return pod, nil
+	}
+
 	// Mutate pod only when it containing piggysec.com/aws-secret-name or piggysec.com/aws-ssm-parameter-path or piggysec.com/piggy-address annotation
 	if config.AWSSecretName != "" || config.AWSSSMParameterPath != "" || config.PiggyAddress != "" {
 		signature := make(Signature)
@@ -211,9 +218,12 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		for i := range pod.Spec.InitContainers {
 			var err error
 			uid := m.generateUid()
-			signature[uid], err = m.mutateContainer(uid, config, &pod.Spec.InitContainers[i], pod)
+			sig, err := m.mutateContainer(uid, config, &pod.Spec.InitContainers[i], pod)
 			if err != nil {
 				return nil, err
+			}
+			if sig != "" {
+				signature[uid] = sig
 			}
 		}
 		log.Debug().Str("namespace", pod.ObjectMeta.Namespace).Msgf("Inserting init-container to podspec ...")
@@ -247,9 +257,12 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		for i := range pod.Spec.Containers {
 			var err error
 			uid := m.generateUid()
-			signature[uid], err = m.mutateContainer(uid, config, &pod.Spec.Containers[i], pod)
+			sig, err := m.mutateContainer(uid, config, &pod.Spec.Containers[i], pod)
 			if err != nil {
 				return nil, err
+			}
+			if sig != "" {
+				signature[uid] = sig
 			}
 		}
 		bytes, err := json.Marshal(&signature)

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestGetEnv checks the retrieval of environment variables with defaults.
 func TestGetEnv(t *testing.T) {
 	os.Setenv("TEST_KEY", "test_value")
 	defer os.Unsetenv("TEST_KEY")
@@ -15,6 +16,7 @@ func TestGetEnv(t *testing.T) {
 	assert.Equal(t, "default", GetEnv("NON_EXISTENT", "default"))
 }
 
+// TestGetEnvBool checks the boolean parsing of environment variables.
 func TestGetEnvBool(t *testing.T) {
 	os.Setenv("TEST_BOOL_TRUE", "true")
 	os.Setenv("TEST_BOOL_FALSE", "false")
@@ -27,6 +29,7 @@ func TestGetEnvBool(t *testing.T) {
 	assert.False(t, GetEnvBool("NON_EXISTENT", false))
 }
 
+// TestGetEnvInt checks the integer parsing of environment variables.
 func TestGetEnvInt(t *testing.T) {
 	os.Setenv("TEST_INT", "123")
 	os.Setenv("TEST_INVALID_INT", "abc")
@@ -38,6 +41,7 @@ func TestGetEnvInt(t *testing.T) {
 	assert.Equal(t, 456, GetEnvInt("NON_EXISTENT", 456))
 }
 
+// TestGetStringValue verifies string retrieval from both annotations and environment variables.
 func TestGetStringValue(t *testing.T) {
 	annotations := map[string]string{
 		Namespace + "test-string": "annotation_value",
@@ -50,6 +54,7 @@ func TestGetStringValue(t *testing.T) {
 	assert.Equal(t, "default", GetStringValue(nil, "non-existent", "default"))
 }
 
+// TestGetBoolValue verifies boolean retrieval from both annotations and environment variables.
 func TestGetBoolValue(t *testing.T) {
 	annotations := map[string]string{
 		Namespace + "test-bool": "true",
@@ -62,6 +67,7 @@ func TestGetBoolValue(t *testing.T) {
 	assert.True(t, GetBoolValue(nil, "non-existent", true))
 }
 
+// TestGetIntValue verifies integer retrieval from both annotations and environment variables.
 func TestGetIntValue(t *testing.T) {
 	annotations := map[string]string{
 		Namespace + "test-int": "123",

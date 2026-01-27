@@ -78,11 +78,6 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		return nil, fmt.Errorf("could not marshal into JSON mutated object: %w", err)
 	}
 	patch, err := jsonpatch.CreatePatch(reqObject.Raw, mutatedJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return nil, fmt.Errorf("could not create JSON patch: %w", err)
-	}
-
 	if err == nil {
 		// Encode the patch operations to JSON and return a positive response.
 		patchBytes, err := json.Marshal(patch)
@@ -97,7 +92,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		// creation.
 		admissionReviewResponse.Response.Allowed = false
 		admissionReviewResponse.Response.Result = &metav1.Status{
-			Message: err.Error(),
+			Message: fmt.Errorf("could not create JSON patch: %w", err).Error(),
 		}
 	}
 

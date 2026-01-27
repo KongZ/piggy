@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+// TestIsKubeNamespace verifies the identification of system namespaces.
 func TestIsKubeNamespace(t *testing.T) {
 	assert.True(t, IsKubeNamespace(metav1.NamespacePublic))
 	assert.True(t, IsKubeNamespace(metav1.NamespaceSystem))
@@ -21,6 +22,7 @@ func TestIsKubeNamespace(t *testing.T) {
 	assert.False(t, IsKubeNamespace("my-app"))
 }
 
+// TestNewMutating ensures that a new Mutating object is correctly initialized.
 func TestNewMutating(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset()
@@ -30,6 +32,7 @@ func TestNewMutating(t *testing.T) {
 	assert.Equal(t, client, m.k8sClient)
 }
 
+// TestGenerateUid checks the randomness and format of generated UIDs.
 func TestGenerateUid(t *testing.T) {
 	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	uid1 := m.generateUid()
@@ -38,12 +41,13 @@ func TestGenerateUid(t *testing.T) {
 	assert.NotEqual(t, uid1, uid2)
 }
 
+// TestLookForValueFrom verifies that Piggy references are correctly identified in ConfigMaps and Secrets.
 func TestLookForValueFrom(t *testing.T) {
 	ctx := context.Background()
 	ns := "default"
 	cmName := "test-cm"
 	secretName := "test-secret"
-	
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: ns},
 		Data: map[string]string{
@@ -57,10 +61,10 @@ func TestLookForValueFrom(t *testing.T) {
 			"skey1": []byte("piggy:secret2"),
 		},
 	}
-	
+
 	client := fake.NewClientset(cm, secret)
 	m, _ := NewMutating(ctx, client)
-	
+
 	// Test ConfigMap match
 	envCM := corev1.EnvVar{
 		Name: "VAR1",
@@ -75,7 +79,7 @@ func TestLookForValueFrom(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "piggy:secret1", result.Value)
-	
+
 	// Test ConfigMap no match (normal value)
 	envCM2 := corev1.EnvVar{
 		Name: "VAR2",
@@ -89,7 +93,7 @@ func TestLookForValueFrom(t *testing.T) {
 	result, err = m.LookForValueFrom(envCM2, ns)
 	assert.NoError(t, err)
 	assert.Nil(t, result)
-	
+
 	// Test Secret match
 	envSecret := corev1.EnvVar{
 		Name: "VAR3",
@@ -106,11 +110,13 @@ func TestLookForValueFrom(t *testing.T) {
 	assert.Equal(t, "piggy:secret2", result.Value)
 }
 
+// TestLookForEnvFrom ensures that all environment variables with Piggy prefixes
+// are extracted from a ConfigMap reference.
 func TestLookForEnvFrom(t *testing.T) {
 	ctx := context.Background()
 	ns := "default"
 	cmName := "test-cm"
-	
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: ns},
 		Data: map[string]string{
@@ -118,10 +124,10 @@ func TestLookForEnvFrom(t *testing.T) {
 			"key2": "normal-value",
 		},
 	}
-	
+
 	client := fake.NewClientset(cm)
 	m, _ := NewMutating(ctx, client)
-	
+
 	envFrom := []corev1.EnvFromSource{
 		{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -129,7 +135,7 @@ func TestLookForEnvFrom(t *testing.T) {
 			},
 		},
 	}
-	
+
 	results, err := m.LookForEnvFrom(envFrom, ns)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
@@ -137,11 +143,12 @@ func TestLookForEnvFrom(t *testing.T) {
 	assert.Equal(t, "piggy:secret1", results[0].Value)
 }
 
+// TestApplyPiggy checks the high-level mutation logic for a pod admission request.
 func TestApplyPiggy(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset()
 	m, _ := NewMutating(ctx, client)
-	
+
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -163,7 +170,7 @@ func TestApplyPiggy(t *testing.T) {
 		},
 	}
 	rawPod, _ := json.Marshal(pod)
-	
+
 	req := &admissionv1.AdmissionRequest{
 		Resource: metav1.GroupVersionResource{Version: "v1", Resource: "pods"},
 		Object: runtime.RawExtension{
@@ -171,11 +178,11 @@ func TestApplyPiggy(t *testing.T) {
 		},
 		Namespace: "default",
 	}
-	
+
 	result, err := m.ApplyPiggy(req)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	
+
 	// ApplyPiggy returns a mutated pod directly if it matches the resource
 	mutatedPod, ok := result.(*corev1.Pod)
 	assert.True(t, ok)

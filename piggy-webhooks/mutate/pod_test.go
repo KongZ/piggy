@@ -11,16 +11,18 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+// TestMutatePod_EmptyPod ensures no changes are applied to a pod without Piggy annotations.
 func TestMutatePod_EmptyPod(t *testing.T) {
 	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	config := &service.PiggyConfig{}
 	pod := &corev1.Pod{}
-	
+
 	patch, err := m.MutatePod(config, pod)
 	assert.NoError(t, err)
 	assert.Nil(t, patch)
 }
 
+// TestMutatePod_InjectedPod verifies the successful injection of Piggy infrastructure into a valid pod.
 func TestMutatePod_InjectedPod(t *testing.T) {
 	m, _ := NewMutating(context.Background(), fake.NewClientset())
 	config := &service.PiggyConfig{
@@ -46,7 +48,7 @@ func TestMutatePod_InjectedPod(t *testing.T) {
 			},
 		},
 	}
-	
+
 	patch, err := m.MutatePod(config, pod)
 	assert.NoError(t, err)
 	assert.NotNil(t, patch)

@@ -47,12 +47,14 @@ func newPod(ns, name, sa string, annotations map[string]string) *corev1.Pod {
 	}
 }
 
+// TestNewService verifies the initialization of the secret service.
 func TestNewService(t *testing.T) {
 	_, client, svc := setupTest(t)
 	assert.NotNil(t, svc)
 	assert.Equal(t, client, svc.k8sClient)
 }
 
+// TestGetSecret_AuthenticationFailure ensures that unauthenticated requests are rejected.
 func TestGetSecret_AuthenticationFailure(t *testing.T) {
 	_, client, svc := setupTest(t)
 	mockTokenReview(client, "", false)
@@ -66,6 +68,7 @@ func TestGetSecret_AuthenticationFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "token is not authenticated")
 }
 
+// TestGetSecret_PodNotFound verifies that requests for unknown pods result in an error.
 func TestGetSecret_PodNotFound(t *testing.T) {
 	_, client, svc := setupTest(t)
 	mockTokenReview(client, "system:serviceaccount:default:test-sa", true)
@@ -80,6 +83,7 @@ func TestGetSecret_PodNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "pod non-existent-pod not found in default namespace")
 }
 
+// TestGetSecret_InvalidSignature checks the validation of pod signatures during secret retrieval.
 func TestGetSecret_InvalidSignature(t *testing.T) {
 	ns, name, sa, uid := "default", "test-pod", "test-sa", "test-uid"
 	pod := newPod(ns, name, sa, map[string]string{
@@ -101,10 +105,11 @@ func TestGetSecret_InvalidSignature(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid signature")
 }
 
+// TestGetSecret_Success_MockingAWS verifies the flow when authentication and signature validation pass.
 func TestGetSecret_Success_MockingAWS(t *testing.T) {
 	ns, name, sa, uid := "default", "test-pod", "test-sa", "test-uid"
 	pod := newPod(ns, name, sa, map[string]string{
-		Namespace + ConfigPiggyUID:             `{"test-uid": "correct-signature"}`,
+		Namespace + ConfigPiggyUID:              `{"test-uid": "correct-signature"}`,
 		Namespace + ConfigPiggyEnforceIntegrity: "false",
 	})
 
