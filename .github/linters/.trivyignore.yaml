@@ -1,0 +1,4 @@
+misconfigurations:
+  - id: AVD-KSV-0041 # Piggy needs to read secrets
+  - id: AVD-KSV-0048 # Piggy needs to mutate pods
+  - id: AVD-KSV-0049 # Piggy needs to read configmap

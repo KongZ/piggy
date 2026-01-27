@@ -158,6 +158,7 @@ The log will look like this:
 ```json
 {"level":"info","time":"2026-01-27T12:37:19Z","message":"Request secrets was successful"}
 ```
+
 This log shows that piggy-env has requested the secrets from Piggy Webhooks and the request was successful.
 
 ### Debug mode

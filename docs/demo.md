@@ -112,7 +112,7 @@ Just simply `echo $TEST_ENV` and see the result. The environment variable value 
 
 ![echo-demo-env](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/echo-demo-env.png "echo-demo-env")
 
-Now, try to curl the demo app and let the app resolve the environment variable:
+Now, try to cURL the demo app and let the app resolve the environment variable:
 
 ```bash
 > curl -s localhost:8080 | grep TEST_ENV
@@ -196,7 +196,7 @@ spec:
           cpu: "200m"
 ```
 
-Now, try to curl to demo app and let's app resolve the environment variable like the demo in AWS Secret Manager above
+Now, try to cURL to demo app and let's app resolve the environment variable like the demo in AWS Secret Manager above
 
 ```bash
 > curl -s localhost:8080 | grep TEST_ENV

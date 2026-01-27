@@ -7,8 +7,8 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - secrets
-      - configmaps
+      - secrets # required to read secrets so it can find `piggy:xxx` text and replace it with actual secret value
+      - configmaps # required to read configmaps so it can find `piggy:xxx` text and replace it with actual secret value
       - pods
     verbs:
       - "get"

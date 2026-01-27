@@ -56,7 +56,7 @@ You can add annotations to Kubernetes Pod objects to customize Piggy's behavior.
   - <a name="piggy-enforce-service-account">`piggysec.com/piggy-enforce-service-account`</a> Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
   - <a name="piggy-default-secret-name-prefix">`piggysec.com/piggy-default-secret-name-prefix`</a>Set default prefix string for secret name
   - <a name="piggy-default-secret-name-suffix">`piggysec.com/piggy-default-secret-name-suffix`</a>Set default suffix string for secret name
-  - <a name="piggy-dns-resolver">`piggysec.com/piggy-dns-resolver`</a>Set Golang DNS resolver such as `tcp`, `udp`. See [https://pkg.go.dev/net](https://pkg.go.dev/net)
+  - <a name="piggy-dns-resolver">`piggysec.com/piggy-dns-resolver`</a>Set Go DNS resolver such as `tcp`, `udp`. See [https://pkg.go.dev/net](https://pkg.go.dev/net)
   - <a name="piggy-initial-delay">`piggysec.com/piggy-initial-delay`</a> sets a delay in n[ns|us|ms|s|m|h] before starting to retrieve secrets. If you are using Istio/Envoy, you may need to set this value to `2s`. Envoy will block all outgoing requests from piggy-env until it is fully started. This delay allows Envoy to become operational before Piggy runs.
   - <a name="piggy-number-of-retry">`piggysec.com/piggy-number-of-retry`</a> sets the number of retries for retrieving secrets before giving up. Each retry will wait for 500 milliseconds. You can use this to resolve issues with delayed pod initialization, such as with Istio/Envoy.
 
