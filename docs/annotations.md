@@ -1,6 +1,6 @@
 # Pod annotations
 
-You can add annotations to kubernetes Pods objects to customize piggy behavior.
+You can add annotations to Kubernetes Pod objects to customize Piggy's behavior.
 
 ## Annotations
 
@@ -34,37 +34,37 @@ You can add annotations to kubernetes Pods objects to customize piggy behavior.
 
 ## AWS Secret Manager
 
-  - <a name="aws-secret-name">`piggysec.com/aws-secret-name`</a> specifies a AWS secret name e.g. "/myapp/name"
-  - <a name="aws-region">`piggysec.com/aws-region`</a> specifies a AWS secret manager region e.g. "ap-southeast-1"
-  - <a name="aws-secret-version">`piggysec.com/aws-secret-version`</a> specifies a AWS secret version. Default value is AWS_CURRENT
+  - <a name="aws-secret-name">`piggysec.com/aws-secret-name`</a> specifies an AWS secret name, e.g., "/myapp/name".
+  - <a name="aws-region">`piggysec.com/aws-region`</a> specifies an AWS Secrets Manager region, e.g., "ap-southeast-1".
+  - <a name="aws-secret-version">`piggysec.com/aws-secret-version`</a> specifies an AWS secret version. The default value is `AWS_CURRENT`.
 
 ## piggy-env settings
 
-  - <a name="piggy-env-image">`piggysec.com/piggy-env-image`</a> overrides a piggy-env image location. If no value specifies, the piggy-env   image location will be taken from piggy-webhooks settings on helm chart
-  - <a name="piggy-env-image-pull-policy">`piggysec.com/piggy-env-image-pull-policy`</a> overrides a piggy-env image pull policy. If no   value specifies, the piggy-env image pull policy will be taken from piggy-webhooks settings on helm chart
-  - <a name="piggy-env-resource-cpu-request">`piggysec.com/piggy-env-resource-cpu-request`</a> overrides a piggy-env init-container   resource CPU requests. Default to `50m`
-  - <a name="piggy-env-resource-memory-request">`piggysec.com/piggy-env-resource-memory-request`</a> overrides a piggy-env init-container   resource memory requests. Default to `64Mi`
-  - <a name="piggy-env-resource-cpu-limit">`piggysec.com/piggy-env-resource-cpu-limit`</a> overrides a piggy-env init-container resource   CPU limit. Default to `200m`
-  - <a name="piggy-env-resource-memory-limit">`piggysec.com/piggy-env-resource-memory-limit`</a> overrides a piggy-env init-container   resource memory limit. Default to `64Mi`
+  - <a name="piggy-env-image">`piggysec.com/piggy-env-image`</a> overrides the piggy-env image location. If no value is specified, the piggy-env image location will be taken from the Piggy Webhooks settings in the Helm chart.
+  - <a name="piggy-env-image-pull-policy">`piggysec.com/piggy-env-image-pull-policy`</a> overrides the piggy-env image pull policy. If no value is specified, the piggy-env image pull policy will be taken from the Piggy Webhooks settings in the Helm chart.
+  - <a name="piggy-env-resource-cpu-request">`piggysec.com/piggy-env-resource-cpu-request`</a> overrides the piggy-env init-container resource CPU requests. Defaults to `50m`.
+  - <a name="piggy-env-resource-memory-request">`piggysec.com/piggy-env-resource-memory-request`</a> overrides the piggy-env init-container resource memory requests. Defaults to `64Mi`.
+  - <a name="piggy-env-resource-cpu-limit">`piggysec.com/piggy-env-resource-cpu-limit`</a> overrides the piggy-env init-container resource CPU limit. Defaults to `200m`.
+  - <a name="piggy-env-resource-memory-limit">`piggysec.com/piggy-env-resource-memory-limit`</a> overrides the piggy-env init-container resource memory limit. Defaults to `64Mi`.
   - <a name="piggy-psp-allow-privilege-escalation">`piggysec.com/piggy-psp-allow-privilege-escalation`</a> allow a piggy-env init-container   to run as root. Default to `false`
   - <a name="piggy-address">`piggysec.com/piggy-address`</a> an endpoint of piggy-webhooks. This is required when it is running in proxy   mode.
   - <a name="piggy-skip-verify-tls">`piggysec.com/piggy-skip-verify-tls`</a> Do not verify TLS certificate between application and piggy-webhooks.
-  - <a name="piggy-ignore-no-env">`piggysec.com/piggy-ignore-no-env`</a> do not terminate the container if no variable found on secret   manager. Default to `false`. Set this value to `false` is recommended in most application. The container will not start if environment   variable is missing.
-  - <a name="piggy-enforce-integrity">`piggysec.com/piggy-enforce-integrity`</a> enforce checking command integrity before inject secrets   into. Default to `true`. Set this value to `true` is recommended in most application. Set to `false` will allow piggy-env to run on   different arguments
+  - <a name="piggy-ignore-no-env">`piggysec.com/piggy-ignore-no-env`</a> does not terminate the container if no variables are found in Secrets Manager. Defaults to `false`. Setting this value to `false` (the default) is recommended for most applications; the container will not start if required environment variables are missing.
+  - <a name="piggy-enforce-integrity">`piggysec.com/piggy-enforce-integrity`</a> enforces checking command integrity before injecting secrets. Defaults to `true`. Setting this value to `true` is recommended for most applications. Setting it to `false` will allow piggy-env to run with different arguments.
   - <a name="debug">`piggysec.com/debug`</a> allows to run piggy-env in debug mode. Default to `false`.
   - <a name="standalone">`piggysec.com/standalone`</a> allows to run piggy-env in standalone mode. Default to `false`. If this value is `true`, the [piggysec.com/piggy-address](#piggy-address) will not be used.
   - <a name="piggy-enforce-service-account">`piggysec.com/piggy-enforce-service-account`</a> Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
   - <a name="piggy-default-secret-name-prefix">`piggysec.com/piggy-default-secret-name-prefix`</a>Set default prefix string for secret name
   - <a name="piggy-default-secret-name-suffix">`piggysec.com/piggy-default-secret-name-suffix`</a>Set default suffix string for secret name
   - <a name="piggy-dns-resolver">`piggysec.com/piggy-dns-resolver`</a>Set Golang DNS resolver such as `tcp`, `udp`. See [https://pkg.go.dev/net](https://pkg.go.dev/net)
-  - <a name="piggy-initial-delay">`piggysec.com/piggy-initial-delay`</a>Set delay in n[ns|us|ms|s|m|h] before start retrieving secrets. If you are using Istio Envoy, you may need to set this value to `2s`. The Envoy will block all outgoing requests from piggy-env until Envoy is fully started. Add this delay value to allow Envoy to operate before running piggy.
-  - <a name="piggy-number-of-retry">`piggysec.com/piggy-number-of-retry`</a>Set number of retry to retrieving secrets before given up. Each retry will wait for 500 milliseconds. You can use this to resolve delay initialize pods setting such as Istio Envoy.
+  - <a name="piggy-initial-delay">`piggysec.com/piggy-initial-delay`</a> sets a delay in n[ns|us|ms|s|m|h] before starting to retrieve secrets. If you are using Istio/Envoy, you may need to set this value to `2s`. Envoy will block all outgoing requests from piggy-env until it is fully started. This delay allows Envoy to become operational before Piggy runs.
+  - <a name="piggy-number-of-retry">`piggysec.com/piggy-number-of-retry`</a> sets the number of retries for retrieving secrets before giving up. Each retry will wait for 500 milliseconds. You can use this to resolve issues with delayed pod initialization, such as with Istio/Envoy.
 
 ## Container image settings
 
-  - <a name="image-pull-secret">`piggysec.com/image-pull-secret`</a> a name of container image pull secret. The piggy will try to read the   container image by using secret in the following order
-    1) pod.spec.imagePullSecrets
+  - <a name="image-pull-secret">`piggysec.com/image-pull-secret`</a> specifies the name of the container image pull secret. Piggy will try to read the container image configuration by using secrets in the following order:
+    1) `pod.spec.imagePullSecrets`
     2) `piggysec.com/image-pull-secret` annotation
-    3) ServiceAccount permission from cloud
-  - <a name="image-pull-secret-namespace">`piggysec.com/image-pull-secret-namespace`</a> a name of container image pull secret namespace.
-  - <a name="image-skip-verify-registry">`piggysec.com/image-skip-verify-registry`</a> skip verify registry when trying to read the image. Default to `true`
+    3) ServiceAccount permissions from the cloud provider
+  - <a name="image-pull-secret-namespace">`piggysec.com/image-pull-secret-namespace`</a> specifies the namespace of the container image pull secret.
+  - <a name="image-skip-verify-registry">`piggysec.com/image-skip-verify-registry`</a> skips registry verification when trying to read the image. Defaults to `true`.

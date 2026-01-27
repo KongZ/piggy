@@ -1,11 +1,11 @@
 # Demo
 
-All source code for demo application and kubernetes manifests files can be found at [demo](https://github.com/KongZ/piggy/tree/main/demo)
+All source code for the demo application and Kubernetes manifest files can be found at [demo](https://github.com/KongZ/piggy/tree/main/demo).
 
 ## AWS Secret Manager
 
-This is default and recommend usage for storing secret.
-The piggy is also support AWS System Manager (SSM) Parameter Store. To use SSM sees [AWS SSM Parameter Store](#aws-ssm-parameter-store) section below
+This is the default and recommended usage for storing secrets.
+Piggy also supports AWS Systems Manager (SSM) Parameter Store. To use SSM, see the [AWS SSM Parameter Store](#aws-ssm-parameter-store) section below.
 
 ### Create secret in AWS Secret Manager
 
@@ -112,7 +112,7 @@ Just simply `echo $TEST_ENV` and see the result. The environment variable value 
 
 ![echo-demo-env](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/echo-demo-env.png "echo-demo-env")
 
-Now, try to curl to demo app and let's app resolve the environment variable
+Now, try to curl the demo app and let the app resolve the environment variable:
 
 ```bash
 > curl -s localhost:8080 | grep TEST_ENV
@@ -123,7 +123,7 @@ Now, try to curl to demo app and let's app resolve the environment variable
 
 ## AWS SSM Parameter Store
 
-The SSM Parameter Store has no additional charge for storage in standard throughput. It can store only up to 4096 characters and it can't replica to another region. But it is much cheaper than AWS Secret Manager.
+SSM Parameter Store has no additional charge for storage in standard throughput. It can store up to 4,096 characters, but it cannot be replicated to another region. However, it is much cheaper than AWS Secrets Manager.
 
 ### Create secret in AWS SSM Parameter Store
 
@@ -165,10 +165,10 @@ The simplest IRSA Policy for Piggy webhooks
 
 ### Create demo pod for SSM Parameter Store
 
-Assume you are already install piggy-webhooks. If you are not install the piggy-webhooks yet, checkout [steps](#run-helm-chart-install) from above.
+Assume you have already installed piggy-webhooks. If you haven't installed it yet, check out the [steps](#run-helm-chart-install) from above.
 
-Create a pod with annotations to piggy-webhooks service, ssm parameter path, and aws-region.
-You can see a yaml file at [demo/ssm/pod.yaml](https://github.com/KongZ/piggy/tree/main/demo/ssm/pod.yaml). The demo is also provide a service account in case if you enable `PIGGY_ENFORCE_SERVICE_ACCOUNT`
+Create a Pod with annotations for the piggy-webhooks service, SSM parameter path, and AWS region.
+You can find a YAML file at [demo/ssm/pod.yaml](https://github.com/KongZ/piggy/tree/main/demo/ssm/pod.yaml). The demo also provides a service account in case you enable `PIGGY_ENFORCE_SERVICE_ACCOUNT`.
 
 ```yaml
 apiVersion: v1
