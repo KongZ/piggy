@@ -27,6 +27,7 @@ jobs:
           VALIDATE_MARKDOWN_PRETTIER: false
           VALIDATE_GO_RELEASER: false
           VALIDATE_BIOME_FORMAT: false
+          VALIDATE_SPELL_CODESPELL: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FILTER_REGEX_EXCLUDE: ".*(demo)/.*"
 

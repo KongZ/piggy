@@ -90,7 +90,7 @@ func (m *Mutating) getDataFromSecret(secretName string, ns string) (map[string][
 	return secret.Data, nil
 }
 
-// ApplyPiggy handle adminssion request and apply piggy to pod
+// ApplyPiggy handle admission request and apply piggy to pod
 func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, error) {
 	config := &service.PiggyConfig{}
 	if req.Resource == podResource {

@@ -2,5 +2,8 @@ version: "2"
 linters:
   disable:
     - unparam
-  exclusions:
-    - text: "QF1001" # Disable: Could apply De Morgan's law
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-QF1001"
