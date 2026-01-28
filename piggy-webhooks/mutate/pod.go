@@ -30,7 +30,7 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 	// if the container has no explicitly specified command
 	if len(entry) == 0 {
 		// read docker image
-		imageConfig, err := m.registry.GetImageConfig(m.context, config, pod.ObjectMeta.Namespace, *container, pod.Spec)
+		imageConfig, err := m.registry.GetImageConfig(m.context, config, pod.Namespace, *container, pod.Spec)
 		if err != nil {
 			return nil, err
 		}

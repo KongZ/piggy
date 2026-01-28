@@ -2,3 +2,7 @@ version: "2"
 linters:
   disable:
     - unparam
+  settings:
+    checks:
+      - "all"
+      - "-QF1001" # Disable: Could apply De Morgan's law

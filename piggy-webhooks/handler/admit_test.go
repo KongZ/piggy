@@ -134,7 +134,8 @@ func TestAdmitHandler_Idempotency(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr1.Code)
 	var responseReview1 admissionv1.AdmissionReview
-	json.Unmarshal(rr1.Body.Bytes(), &responseReview1)
+	err := json.Unmarshal(rr1.Body.Bytes(), &responseReview1)
+	assert.NoError(t, err)
 	assert.True(t, responseReview1.Response.Allowed)
 
 	// Apply the patch to get the mutated pod for the second call
