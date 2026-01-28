@@ -1,4 +1,4 @@
 {
-	"threshold": 5,
-	"ignore": ["/demo/**", "/charts/**", ".github/workflows/**"]
+  "threshold": 5,
+  "ignore": ["/demo/**", "/charts/**", ".github/workflows/**"]
 }
