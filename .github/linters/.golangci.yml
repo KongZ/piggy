@@ -2,3 +2,9 @@ version: "2"
 linters:
   disable:
     - unparam
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-QF1001"
+        - "-ST1000"

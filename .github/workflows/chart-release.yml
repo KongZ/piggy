@@ -14,12 +14,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Lint Code Base
-        uses: github/super-linter@v4
+        uses: super-linter/super-linter@12562e48d7059cf666c43a4ecb0d3b5a2b31bd9e # v8.4.0
         env:
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_CHECKOV: false
@@ -30,6 +31,8 @@ jobs:
           VALIDATE_MARKDOWN_PRETTIER: false
           VALIDATE_GO_RELEASER: false
           DEFAULT_BRANCH: main
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_SPELL_CODESPELL: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FILTER_REGEX_EXCLUDE: ".*(demo)/.*"
 
@@ -38,12 +41,12 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
       - name: Install Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
           version: v3.13.0
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
           charts_dir: charts
         env:

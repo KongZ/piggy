@@ -29,9 +29,9 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		return nil, fmt.Errorf("could not read request body: %v", err)
 	}
 
-	if contentType := r.Header.Get("Content-Type"); contentType != JsonContentType {
+	if contentType := r.Header.Get("Content-Type"); contentType != JSONContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
+		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JSONContentType)
 	}
 
 	// Step 2: Parse the AdmissionReview request.
@@ -78,11 +78,6 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		return nil, fmt.Errorf("could not marshal into JSON mutated object: %w", err)
 	}
 	patch, err := jsonpatch.CreatePatch(reqObject.Raw, mutatedJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return nil, fmt.Errorf("could not create JSON patch: %w", err)
-	}
-
 	if err == nil {
 		// Encode the patch operations to JSON and return a positive response.
 		patchBytes, err := json.Marshal(patch)
@@ -97,7 +92,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		// creation.
 		admissionReviewResponse.Response.Allowed = false
 		admissionReviewResponse.Response.Result = &metav1.Status{
-			Message: err.Error(),
+			Message: fmt.Errorf("could not create JSON patch: %w", err).Error(),
 		}
 	}
 
@@ -110,7 +105,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 	return bytes, nil
 }
 
-// AdmitFuncHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
+// AdmitHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
 func AdmitHandler(admit admitFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// dump, err := httputil.DumpRequest(r, true)

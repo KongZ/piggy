@@ -61,13 +61,13 @@ func main() {
 	}
 	mux.Handle("/secret", handler.SecretHandler(svc.GetSecret))
 	ch := make(chan struct{})
-	enabledTls := !(certPath == "" && keyPath == "")
+	enabledTLS := !(certPath == "" && keyPath == "")
 	server := http.Server{
 		Addr:              listenAddress,
 		Handler:           mux,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
-	if enabledTls {
+	if enabledTLS {
 		tlscfg := &tls.Config{
 			MinVersion:               tls.VersionTLS12,
 			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
@@ -92,7 +92,7 @@ func main() {
 		}
 		close(ch)
 	}()
-	if enabledTls {
+	if enabledTLS {
 		log.Info().Msgf("Listening on https://%s", listenAddress)
 		err = server.ListenAndServeTLS(certPath, keyPath)
 	} else {

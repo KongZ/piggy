@@ -1,4 +1,4 @@
-This demo require default settings on Piggy Webhook. You can install Piggy Webhooks with default settings by
+This demo requires default settings on Piggy Webhooks. You can install Piggy Webhooks with default settings by:
 
 ```bash
 helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks \

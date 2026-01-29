@@ -32,13 +32,17 @@ podSecurityContext:
   runAsUser: 10001
   fsGroup: 65534
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 65534
+  allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
 
 service:
   type: ClusterIP
@@ -54,17 +58,17 @@ ingress:
   path: /
   pathType: ImplementationSpecific
 
-resources: {}
-  ## We usually recommend not to specify default resources and to leave this as a conscious
-  ## choice for the user. This also increases chances charts run on environments with little
-  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
-  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+## We usually recommend not to specify default resources and to leave this as a conscious
+## choice for the user. This also increases chances charts run on environments with little
+## resources, such as Minikube. If you do want to specify resources, uncomment the following
+## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
 
 autoscaling:
   enabled: false
@@ -86,7 +90,15 @@ nodeSelector: {}
 
 tolerations: []
 
-affinity: {}
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: piggy-webhooks
+          topologyKey: kubernetes.io/hostname
 
 volumeMounts: []
 
@@ -127,7 +139,7 @@ mutate:
         algorithm: ECDSA
         size: 256
     generate: true
-    # if certManager.use = true OR generate=true, set the certificate validity (days)
+    ## if certManager.use = true OR generate=true, set the certificate validity (days)
     certValidity: 3650
     tls:
       crt:
@@ -135,10 +147,20 @@ mutate:
     ca:
       crt:
   timeoutSeconds: false
+  ## How unrecognized errors and timeout errors from the admission webhook are handled
+  ## Fail: The admission request is rejected. This can prevent Pods from starting if piggy-webhooks itself is down
+  ## Ignore: The admission request is accepted. This can allow Pods to start even if piggy-webhooks itself is down
+  ## See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#failure-policy
   podsFailurePolicy: Ignore
   image:
     repository: ghcr.io/kongz/piggy-env
     pullPolicy: IfNotPresent
     tag: "0.7.0"
+  ## If the pods being admitted is modified by other admission plugins after the initial webhook call, 
+  ## set this value to 'IfNeeded' to allow the webhook to be called again. Set to 'Never' to prevent the webhook from being called again.
+  reinvocationPolicy: IfNeeded
+  ## List of namespaces to exclude from the webhook
+  excludeNamespaces: []
 
+## Set to true to enable debug mode
 debug: false

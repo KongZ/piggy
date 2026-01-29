@@ -368,9 +368,10 @@ func main() {
 			os.Exit(0)
 		}
 		for i := 0; i < len(args); i++ {
-			if args[i] == "--standalone" {
+			switch args[i] {
+			case "--standalone":
 				standalone = true
-			} else if args[i] == "--retry" {
+			case "--retry":
 				var i64 int64
 				var err error
 				i = i + 1
@@ -381,7 +382,7 @@ func main() {
 					log.Fatal().Msgf("Invalid --retry value. Expecting integer > 0")
 				}
 				numberOfRetry = int(i64)
-			} else if args[i] == "--initial-delay" {
+			case "--initial-delay":
 				var err error
 				i = i + 1
 				if i >= len(args) {
