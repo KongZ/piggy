@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -187,4 +188,45 @@ func TestAdmitHandler_Idempotency(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, piggyVolumeCount, "Piggy volume should not be duplicated")
+}
+
+// TestAdmitHandler_Errors verifies the admission handler's error response for various invalid requests.
+func TestAdmitHandler_Errors(t *testing.T) {
+	// Case 1: Malformed JSON
+	handler := AdmitHandler(nil)
+	req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewBufferString("{invalid"))
+	req.Header.Set("Content-Type", JSONContentType)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	// Case 2: Missing request object
+	review := admissionv1.AdmissionReview{Request: nil}
+	body, _ := json.Marshal(review)
+	req, _ = http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", JSONContentType)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	// Case 3: Admit function error
+	admitErr := func(req *admissionv1.AdmissionRequest) (interface{}, error) {
+		return nil, errors.New("admit error")
+	}
+	handler = AdmitHandler(admitErr)
+	rawPod, _ := json.Marshal(metav1.ObjectMeta{Name: "test-pod"})
+	review = admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID: "test-uid",
+			Object: runtime.RawExtension{
+				Raw: rawPod,
+			},
+		},
+	}
+	body, _ = json.Marshal(review)
+	req, _ = http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", JSONContentType)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }

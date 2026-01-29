@@ -3,6 +3,7 @@ package mutate
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/KongZ/piggy/piggy-webhooks/service"
@@ -141,6 +142,31 @@ func TestLookForEnvFrom(t *testing.T) {
 	assert.Len(t, results, 1)
 	assert.Equal(t, "key1", results[0].Name)
 	assert.Equal(t, "piggy:secret1", results[0].Value)
+
+	// Test Secret match
+	secretName := "test-secret"
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns},
+		Data: map[string][]byte{
+			"skey1": []byte("piggy:secret2"),
+		},
+	}
+	client = fake.NewClientset(secret)
+	m, _ = NewMutating(ctx, client)
+
+	envFrom = []corev1.EnvFromSource{
+		{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+			},
+		},
+	}
+
+	results, err = m.LookForEnvFrom(envFrom, ns)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "skey1", results[0].Name)
+	assert.Equal(t, "piggy:secret2", results[0].Value)
 }
 
 // TestApplyPiggy checks the high-level mutation logic for a pod admission request.
@@ -187,4 +213,94 @@ func TestApplyPiggy(t *testing.T) {
 	mutatedPod, ok := result.(*corev1.Pod)
 	assert.True(t, ok)
 	assert.Equal(t, "test-pod", mutatedPod.Name)
+}
+
+// TestLookForValueFrom_ErrorCases verifies handling of missing ConfigMaps/Secrets in ValueFrom.
+func TestLookForValueFrom_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+	client := fake.NewClientset()
+	m, _ := NewMutating(ctx, client)
+
+	// ConfigMap not found (should return nil, nil)
+	envCM := corev1.EnvVar{
+		ValueFrom: &corev1.EnvVarSource{
+			ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "missing"},
+				Key:                  "k",
+			},
+		},
+	}
+	res, err := m.LookForValueFrom(envCM, "default")
+	assert.NoError(t, err)
+	assert.Nil(t, res)
+
+	// Secret not found (should return nil, nil)
+	envSec := corev1.EnvVar{
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "missing"},
+				Key:                  "k",
+			},
+		},
+	}
+	res, err = m.LookForValueFrom(envSec, "default")
+	assert.NoError(t, err)
+	assert.Nil(t, res)
+}
+
+// TestLookForEnvFrom_ErrorCases verifies handling of missing or optional sources in EnvFrom.
+func TestLookForEnvFrom_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+	client := fake.NewClientset()
+	m, _ := NewMutating(ctx, client)
+
+	optional := true
+	envFrom := []corev1.EnvFromSource{
+		{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "missing"},
+				Optional:             &optional,
+			},
+		},
+		{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "missing-but-handled"},
+			},
+		},
+	}
+
+	results, err := m.LookForEnvFrom(envFrom, "default")
+	assert.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+// TestMergeConfig ensures that Piggy configuration is correctly merged from pod annotations and environment variables.
+func TestMergeConfig(t *testing.T) {
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
+	config := &service.PiggyConfig{}
+
+	// Set an env var for fallback
+	os.Setenv("PIGGY_ADDRESS", "http://env-address")
+	defer os.Unsetenv("PIGGY_ADDRESS")
+
+	annotations := map[string]string{
+		service.Namespace + service.ConfigPiggyEnvImage:                    "custom-image",
+		service.Namespace + service.ConfigPiggyEnvImagePullPolicy:          "IfNotPresent",
+		service.Namespace + service.ConfigPiggyEnvResourceCPURequest:       "100m",
+		service.Namespace + service.ConfigPiggyEnvResourceMemoryRequest:    "128Mi",
+		service.Namespace + service.ConfigPiggyEnvResourceCPULimit:         "500m",
+		service.Namespace + service.ConfigPiggyEnvResourceMemoryLimit:      "256Mi",
+		service.Namespace + service.ConfigPiggyPSPAllowPrivilegeEscalation: "true",
+		service.Namespace + service.AWSSecretName:                          "my-secret",
+		service.Namespace + service.ConfigDebug:                            "true",
+	}
+
+	m.mergeConfig(config, annotations)
+	assert.Equal(t, "custom-image", config.PiggyImage)
+	assert.Equal(t, corev1.PullIfNotPresent, config.PiggyImagePullPolicy)
+	assert.Equal(t, "100m", config.PiggyResourceCPURequest.String())
+	assert.Equal(t, "my-secret", config.AWSSecretName)
+	assert.True(t, config.PiggyPspAllowPrivilegeEscalation)
+	assert.True(t, config.Debug)
+	assert.Equal(t, "http://env-address", config.PiggyAddress)
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -126,4 +127,104 @@ func TestGetSecret_Success_MockingAWS(t *testing.T) {
 	// It will try to call AWS and fail because of no credentials/mock
 	_, _, err := svc.GetSecret(payload)
 	assert.Error(t, err)
+}
+
+// TestSanitizedEnv_Append verifies that sensitive PIGGY_* environment variables are filtered out during appending.
+func TestSanitizedEnv_Append(t *testing.T) {
+	env := &SanitizedEnv{}
+	env.append("NORMAL_VAR", "value1")
+	env.append("PIGGY_AWS_SECRET_NAME", "secret") // Should be skipped
+
+	assert.Equal(t, "value1", (*env)["NORMAL_VAR"])
+	_, exists := (*env)["PIGGY_AWS_SECRET_NAME"]
+	assert.False(t, exists)
+}
+
+// TestAwsErr verifies the error identification helper for AWS related errors.
+func TestAwsErr(t *testing.T) {
+	assert.False(t, awsErr(nil))
+	assert.True(t, awsErr(errors.New("generic error")))
+}
+
+// TestProcessSecret ensures that secrets are correctly processed and filtered based on service account permissions.
+func TestProcessSecret(t *testing.T) {
+	config := &PiggyConfig{
+		PodServiceAccountName: "default:test-sa",
+	}
+
+	// Case 1: Allowed via PIGGY_ALLOWED_SA
+	secrets := map[string]string{
+		"PIGGY_ALLOWED_SA": "default:test-sa,other:sa",
+		"MY_VAR":           "val1",
+	}
+	env := &SanitizedEnv{}
+	err := processSecret(config, secrets, env)
+	assert.NoError(t, err)
+	assert.Equal(t, "val1", (*env)["MY_VAR"])
+
+	// Case 2: Rejected via PIGGY_ALLOWED_SA
+	secrets = map[string]string{
+		"PIGGY_ALLOWED_SA": "other:sa",
+		"MY_VAR":           "val1",
+	}
+	env = &SanitizedEnv{}
+	err = processSecret(config, secrets, env)
+	assert.Error(t, err)
+	assert.Equal(t, ErrorAuthorized, err)
+
+	// Case 3: Enforce Service Account (No PIGGY_ALLOWED_SA in secrets)
+	config.PiggyEnforceServiceAccount = true
+	secrets = map[string]string{
+		"MY_VAR": "val1",
+	}
+	env = &SanitizedEnv{}
+	err = processSecret(config, secrets, env)
+	assert.Error(t, err)
+
+	// Case 4: Don't Enforce Service Account
+	config.PiggyEnforceServiceAccount = false
+	err = processSecret(config, secrets, env)
+	assert.NoError(t, err)
+	assert.Equal(t, "val1", (*env)["MY_VAR"])
+}
+
+// TestGetSecret_InvalidServiceAccount verifies that requests from a mismatching service account are rejected.
+func TestGetSecret_InvalidServiceAccount(t *testing.T) {
+	ns, name, sa, otherSa := "default", "test-pod", "test-sa", "other-sa"
+	pod := newPod(ns, name, sa, nil)
+
+	_, client, svc := setupTest(t, pod)
+	// Token is for otherSa
+	mockTokenReview(client, "system:serviceaccount:"+ns+":"+otherSa, true)
+
+	payload := &GetSecretPayload{
+		Name:  name,
+		Token: "valid-token",
+	}
+
+	_, _, err := svc.GetSecret(payload)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid service account found")
+}
+
+// TestGetSecret_MissingUID verifies that requests with a missing UID in the pod signature are rejected.
+func TestGetSecret_MissingUID(t *testing.T) {
+	ns, name, sa := "default", "test-pod", "test-sa"
+	pod := newPod(ns, name, sa, map[string]string{
+		Namespace + ConfigPiggyUID: "{}", // Empty signature
+	})
+
+	_, client, svc := setupTest(t, pod)
+	mockTokenReview(client, "system:serviceaccount:"+ns+":"+sa, true)
+
+	payload := &GetSecretPayload{
+		Name:      name,
+		Token:     "valid-token",
+		UID:       "some-uid",
+		Signature: "sig",
+	}
+
+	_, _, err := svc.GetSecret(payload)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid signature")
 }
