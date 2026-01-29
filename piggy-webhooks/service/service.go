@@ -22,8 +22,9 @@ const PrefixPiggy = "piggy:"
 const Namespace = "piggysec.com/"
 const AWSSecretName = "aws-secret-name"              // AWS secret name
 const AWSSSMParameterPath = "aws-ssm-parameter-path" // AWS SSM parameter path
+// AWSSecretVersion AWS secret version
 // #nosec G101 it is not a credential
-const AWSSecretVersion = "aws-secret-version"                                         // AWS secret version
+const AWSSecretVersion = "aws-secret-version"
 const ConfigAWSRegion = "aws-region"                                                  // AWS secret's region
 const ConfigPiggyEnvImage = "piggy-env-image"                                         // The piggy-env image URL
 const ConfigPiggyEnvImagePullPolicy = "piggy-env-image-pull-policy"                   // The piggy-env image pull policy
@@ -38,17 +39,21 @@ const ConfigPiggyUID = "piggy-uid"                                              
 const ConfigPiggyIgnoreNoEnv = "piggy-ignore-no-env"                                  // Default to false; Exit piggy-env if no environment variable found on secret manager
 const ConfigPiggyEnforceIntegrity = "piggy-enforce-integrity"                         // Default to true; Check the command integrity before run.
 const ConfigDebug = "debug"                                                           // Enable debuging log
+// ConfigImagePullSecret Container image pull secret
 // #nosec G101 it is not a credential
-const ConfigImagePullSecret = "image-pull-secret" // Container image pull secret
+const ConfigImagePullSecret = "image-pull-secret"
+
+// ConfigImagePullSecretNamespace Container image pull secret namespace
 // #nosec G101 it is not a credential
-const ConfigImagePullSecretNamespace = "image-pull-secret-namespace" // Container image pull secret namespace
-const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry"   // Default to true; not verify the registry
-const ConfigStandalone = "standalone"                                // Default to false; use piggy-webhook to read secrets instead of pod
-const ConfigPiggyDNSResolver = "piggy-dns-resolver"                  // Default to ""; Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
-const ConfigPiggyInitialDelay = "piggy-initial-delay"                // Default to 0; Delay n[ns|us|ms|s|m|h] before requesting secret from piggy-webhooks or secret-manager e.g. 1s (1 second)
-const ConfigPiggyNumberOfRetry = "piggy-number-of-retry"             // Default to 0; Set number of retry retrieving secrets before giving up
+const ConfigImagePullSecretNamespace = "image-pull-secret-namespace"
+const ConfigImageSkipVerifyRegistry = "image-skip-verify-registry" // Default to true; not verify the registry
+const ConfigStandalone = "standalone"                              // Default to false; use piggy-webhook to read secrets instead of pod
+const ConfigPiggyDNSResolver = "piggy-dns-resolver"                // Default to ""; Set Golang DNS resolver such as `tcp`, `udp`. See https://pkg.go.dev/net
+const ConfigPiggyInitialDelay = "piggy-initial-delay"              // Default to 0; Delay n[ns|us|ms|s|m|h] before requesting secret from piggy-webhooks or secret-manager e.g. 1s (1 second)
+const ConfigPiggyNumberOfRetry = "piggy-number-of-retry"           // Default to 0; Set number of retry retrieving secrets before giving up
+// ConfigPiggyEnforceServiceAccount Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
 // use only when injecting secrets
-const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account"      // Default to false; Force to check `PIGGY_ALLOWED_SA` env value in AWS secret manager
+const ConfigPiggyEnforceServiceAccount = "piggy-enforce-service-account"
 const ConfigPiggyDefaultSecretNamePrefix = "piggy-default-secret-name-prefix" // Default to ""; Set default prefix string for secret name
 const ConfigPiggyDefaultSecretNameSuffix = "piggy-default-secret-name-suffix" // Default to ""; Set default suffix string for secret name
 

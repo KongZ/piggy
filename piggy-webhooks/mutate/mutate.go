@@ -44,8 +44,8 @@ func NewMutating(ctx context.Context, k8sClient kubernetes.Interface) (*Mutating
 	return mutating, nil
 }
 
-// GenerateUid get an uid
-func (m *Mutating) generateUid() string {
+// generateUID get an uid
+func (m *Mutating) generateUID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
 
@@ -151,12 +151,12 @@ func (m *Mutating) LookForValueFrom(env corev1.EnvVar, ns string) (*corev1.EnvVa
 }
 
 // LookForEnvFrom look up value from envFrom
-func (mw *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([]corev1.EnvVar, error) {
+func (m *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([]corev1.EnvVar, error) {
 	var envVars []corev1.EnvVar
 
 	for _, ef := range envFrom {
 		if ef.ConfigMapRef != nil {
-			data, err := mw.getDataFromConfigmap(ef.ConfigMapRef.Name, ns)
+			data, err := m.getDataFromConfigmap(ef.ConfigMapRef.Name, ns)
 			if err != nil {
 				if apierrors.IsNotFound(err) || (ef.ConfigMapRef.Optional != nil && *ef.ConfigMapRef.Optional) {
 					continue
@@ -175,7 +175,7 @@ func (mw *Mutating) LookForEnvFrom(envFrom []corev1.EnvFromSource, ns string) ([
 			}
 		}
 		if ef.SecretRef != nil {
-			data, err := mw.getDataFromSecret(ef.SecretRef.Name, ns)
+			data, err := m.getDataFromSecret(ef.SecretRef.Name, ns)
 			if err != nil {
 				if apierrors.IsNotFound(err) || (ef.SecretRef.Optional != nil && *ef.SecretRef.Optional) {
 					continue

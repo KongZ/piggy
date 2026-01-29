@@ -29,9 +29,9 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 		return nil, fmt.Errorf("could not read request body: %v", err)
 	}
 
-	if contentType := r.Header.Get("Content-Type"); contentType != JsonContentType {
+	if contentType := r.Header.Get("Content-Type"); contentType != JSONContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
+		return nil, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JSONContentType)
 	}
 
 	// Step 2: Parse the AdmissionReview request.
@@ -105,7 +105,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 	return bytes, nil
 }
 
-// AdmitFuncHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
+// AdmitHandler takes an admitFunc and wraps it into a http.Handler by means of calling serveAdmitFunc.
 func AdmitHandler(admit admitFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// dump, err := httputil.DumpRequest(r, true)

@@ -35,8 +35,8 @@ func TestNewMutating(t *testing.T) {
 // TestGenerateUid checks the randomness and format of generated UIDs.
 func TestGenerateUid(t *testing.T) {
 	m, _ := NewMutating(context.Background(), fake.NewClientset())
-	uid1 := m.generateUid()
-	uid2 := m.generateUid()
+	uid1 := m.generateUID()
+	uid2 := m.generateUID()
 	assert.NotEmpty(t, uid1)
 	assert.NotEqual(t, uid1, uid2)
 }

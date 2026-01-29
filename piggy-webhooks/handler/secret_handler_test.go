@@ -35,7 +35,7 @@ func TestSecretHandler_Success(t *testing.T) {
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", JsonContentType)
+	req.Header.Set("Content-Type", JSONContentType)
 	req.Header.Set("X-Token", "valid-token")
 	rr := httptest.NewRecorder()
 
@@ -55,7 +55,7 @@ func TestSecretHandler_MissingToken(t *testing.T) {
 	handler := SecretHandler(nil)
 
 	req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewBufferString("{}"))
-	req.Header.Set("Content-Type", JsonContentType)
+	req.Header.Set("Content-Type", JSONContentType)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)

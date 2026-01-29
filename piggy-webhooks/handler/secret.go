@@ -29,9 +29,9 @@ func doServeSecretFunc(w http.ResponseWriter, r *http.Request, secretFunc getSec
 		return nil, service.Info{}, fmt.Errorf("could not read request body: %v", err)
 	}
 
-	if contentType := r.Header.Get("Content-Type"); contentType != JsonContentType {
+	if contentType := r.Header.Get("Content-Type"); contentType != JSONContentType {
 		w.WriteHeader(http.StatusBadRequest)
-		return nil, service.Info{}, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JsonContentType)
+		return nil, service.Info{}, fmt.Errorf("unsupported content type %s, only %s is supported", contentType, JSONContentType)
 	}
 
 	serviceToken := r.Header.Get("X-Token")

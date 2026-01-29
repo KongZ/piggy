@@ -147,6 +147,10 @@ mutate:
     ca:
       crt:
   timeoutSeconds: false
+  ## How unrecognized errors and timeout errors from the admission webhook are handled
+  ## Fail: The admission request is rejected. This can prevent Pods from starting if piggy-webhooks itself is down
+  ## Ignore: The admission request is accepted. This can allow Pods to start even if piggy-webhooks itself is down
+  ## See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#failure-policy
   podsFailurePolicy: Ignore
   image:
     repository: ghcr.io/kongz/piggy-env

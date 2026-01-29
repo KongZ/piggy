@@ -1,5 +1,5 @@
 package handler
 
 const (
-	JsonContentType = `application/json`
+	JSONContentType = `application/json`
 )

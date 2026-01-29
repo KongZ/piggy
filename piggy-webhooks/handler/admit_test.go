@@ -68,7 +68,7 @@ func TestAdmitHandler_Success(t *testing.T) {
 	body, _ := json.Marshal(review)
 
 	req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", JsonContentType)
+	req.Header.Set("Content-Type", JSONContentType)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -128,7 +128,7 @@ func TestAdmitHandler_Idempotency(t *testing.T) {
 
 	// First mutation
 	req1, _ := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
-	req1.Header.Set("Content-Type", JsonContentType)
+	req1.Header.Set("Content-Type", JSONContentType)
 	rr1 := httptest.NewRecorder()
 	handler.ServeHTTP(rr1, req1)
 
@@ -178,7 +178,6 @@ func TestAdmitHandler_Idempotency(t *testing.T) {
 	mutatedPod2 := mutatedPodInterface2.(*corev1.Pod)
 
 	// VERIFY IDEMPOTENCY: Should still have exactly 1 init container and 1 volume
-	// CURRENTLY THIS WILL FAIL (it will duplicate)
 	assert.Len(t, mutatedPod2.Spec.InitContainers, 1, "Init containers should not be duplicated")
 
 	piggyVolumeCount := 0
