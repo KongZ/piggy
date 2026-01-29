@@ -280,8 +280,9 @@ func TestMergeConfig(t *testing.T) {
 	config := &service.PiggyConfig{}
 
 	// Set an env var for fallback
-	os.Setenv("PIGGY_ADDRESS", "http://env-address")
-	defer os.Unsetenv("PIGGY_ADDRESS")
+	err := os.Setenv("PIGGY_ADDRESS", "http://env-address")
+	assert.NoError(t, err)
+	defer func() { _ = os.Unsetenv("PIGGY_ADDRESS") }()
 
 	annotations := map[string]string{
 		service.Namespace + service.ConfigPiggyEnvImage:                    "custom-image",
