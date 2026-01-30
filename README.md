@@ -131,9 +131,9 @@ where the variable value is prefixed with `piggy:`.
 
 The example manifest file for Pod. To receive the Piggy Webhooks injection, you will need only 3 annotations
 
-- `piggysec.com/piggy-address` - set a value to Piggy Webhooks service
-- `piggysec.com/aws-secret-name` - set a value to your AWS secret name
-- `piggysec.com/aws-region` - set a value to your AWS secret manager region
+  - `piggysec.com/piggy-address` - set a value to Piggy Webhooks service
+  - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
+  - `piggysec.com/aws-region` - set a value to your AWS secret manager region
 
 ```yaml
 apiVersion: v1
@@ -258,9 +258,9 @@ You need to setup AWS IRSA with at least this permission:
 
 Then add the following annotations to the Pod. Note that you don't have to provide the Piggy Webhooks address in this mode.
 
-- `piggysec.com/aws-secret-name` - set to your AWS secret name
-- `piggysec.com/aws-region` - set to your AWS Secrets Manager region
-- `piggysec.com/standalone` - set to true
+  - `piggysec.com/aws-secret-name` - set to your AWS secret name
+  - `piggysec.com/aws-region` - set to your AWS Secrets Manager region
+  - `piggysec.com/standalone` - set to true
 
 ```yaml
 apiVersion: v1
