@@ -4,9 +4,9 @@ This chart installs the Piggy Webhooks service, which provides admission control
 
 ## Prerequisites
 
-- Kubernetes 1.16+
-- Helm 3.0+
-- AWS IRSA configured (for AWS Secrets Manager access)
+  - Kubernetes 1.16+
+  - Helm 3.0+
+  - AWS IRSA configured (for AWS Secrets Manager access)
 
 ## Installation
 
