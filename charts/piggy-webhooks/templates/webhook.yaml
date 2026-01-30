@@ -49,6 +49,7 @@ webhooks:
     timeoutSeconds: {{ .Values.mutate.timeoutSeconds }}
     {{- end }}
     reinvocationPolicy: {{ .Values.mutate.reinvocationPolicy | default "IfNeeded" }}
+    matchPolicy: Equivalent
     clientConfig:
       service:
         name: {{ include "piggy-webhooks.fullname" . }}
@@ -60,6 +61,7 @@ webhooks:
         apiGroups: ["*"]
         apiVersions: ["*"]
         resources: ["pods"]
+        scope: "Namespaced"
     namespaceSelector:
       matchExpressions:
         - key: kubernetes.io/metadata.name
@@ -69,5 +71,13 @@ webhooks:
             {{- range $ns := $nsList }}
             - {{ $ns }}
             {{- end }}
+    {{- if .Values.mutate.objectSelector }}
+    objectSelector:
+      {{- toYaml .Values.mutate.objectSelector | nindent 6 }}
+    {{- end }}
+    {{- if and .Values.mutate.matchConditions (semverCompare ">=1.27.0-0" .Capabilities.KubeVersion.Version) }}
+    matchConditions:
+      {{- toYaml .Values.mutate.matchConditions | nindent 6 }}
+    {{- end }}
     failurePolicy: {{ .Values.mutate.podsFailurePolicy }}
     sideEffects: None
