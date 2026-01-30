@@ -4,19 +4,20 @@ title: Piggy
 ---
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/piggy.png" alt="Piggy Logo"/>
+  <img src="https://raw.githubusercontent.com/KongZ/piggy/refs/heads/main/docs/images/gopher-piggy.png" alt="Piggy logo" width="200"/>
+
 </p>
 
 # Piggy
 
-Piggy is a tool built for supporting AWS Secret Manager with Kubernetes. It has abilities to mutating Pods, unseal secrets and inject
-into application environment.
+Piggy is a tool built for supporting AWS Secrets Manager with Kubernetes. It has the ability to mutate Pods, unseal secrets, and inject them
+into the application environment.
 
 ## Installation
 
-Current release requires AWS IRSA to provide the IAM permission to piggy for unsealing secrets. Before installing Piggy webhooks, you must
-setup the IRSA on AWS. Sees [https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html] for complete detail of IRSA setting up.
-Alternatively, you can use Terraform the setup IRSA. Sees [https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/irsa]
+Current release requires AWS IRSA to provide IAM permissions to Piggy for unsealing secrets. Before installing Piggy Webhooks, you must
+setup IRSA on AWS. See [https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html] for complete details on setting up IRSA.
+Alternatively, you can use Terraform to setup IRSA. See [https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/irsa]
 
 The simplest IRSA Policy for Piggy webhooks
 
@@ -52,14 +53,14 @@ The simplest IRSA Policy for Piggy webhooks
 }
 ```
 
-1) Run helm chart install
+1. Run helm chart install
 
 ```bash
 helm repo add piggysec https://piggysec.com
 helm -n piggy-webhooks install piggy-webhooks piggysec/piggy-webhooks --set aws.roleArn=${piggy-role-arn}
 ```
 
-2) Add these minimum annotations to your Deployment
+2. Add these minimum annotations to your Deployment
 
 ```yaml
 apiVersion: v1
@@ -73,21 +74,21 @@ metadata:
 
 You can define a default AWS region by setting `AWS_REGION` environment value in Piggy Webhooks
 
-3) Add Env value with format `piggy:${name}`
+3. Add Env value with format `piggy:${name}`
 
 ```yaml
-  containers:
-      env:
-        - name: TEST_ENV
-          value: piggy:TEST_ENV
+containers:
+  env:
+    - name: TEST_ENV
+      value: piggy:TEST_ENV
 ```
 
-4) That all!!. See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
+4. That's it! See the demo at [https://github.com/KongZ/piggy/tree/main/demo]
 
 ### Default settings
 
-Some setting such as AWS region can set a default value by setting `env` in piggy webhooks helm chart value.
-Simply remove prefix `piggysec.com` from annotation, put it all in upper case, and change `-` to `_`.
+Some settings, such as the AWS region, can have default values set via the `env` in the Piggy Webhooks Helm chart values.
+Simply remove the `piggysec.com/` prefix from the annotation, change it to uppercase, and replace `-` with `_`.
 
 For example:
 
@@ -99,9 +100,9 @@ env:
 
 ## Proxy mode
 
-This is a default mode. The Piggy Webhooks requires a permission to read secret from AWS Secret Manager.
-The application containers will send request to Piggy Webhooks and Piggy Webhooks will inject the secret into containers environments
-which prefix with `piggy:`
+This is the default mode. Piggy Webhooks requires permission to read secrets from AWS Secrets Manager.
+The application containers send requests to Piggy Webhooks, and Piggy Webhooks injects the secrets into container environments
+where the variable value is prefixed with `piggy:`.
 
 ```bash
                 (1)  ┌───────────┐ (10)
@@ -166,16 +167,14 @@ func main() {
 
 ### Restrict process to run
 
-Set [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is true) will restrict piggy-env to resolve the variable only process defined on container arguments.
+Setting the [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity) annotation to `true` (default is `true`) restricts piggy-env to resolve variables only for the process defined in the container arguments.
 
-### Limit secrets injection only allowed service accounts
+You may improve security by restricting access to only the Pod's service account.
+You can limit access by adding a variable named `PIGGY_ALLOWED_SA` to the AWS secret, where the value is the `namespace:service_account` name.
 
-You may improve security by restrict only Pod service account to read the secrets.
-You can limit access by adding variable name `PIGGY_ALLOWED_SA` to AWS secret where value is `namespace:service_account` name.
+Piggy Webhooks will not inject secrets into containers if the Pod's service account name does not match the value of `PIGGY_ALLOWED_SA`.
 
-The Piggy Webhooks will not inject secrets into containers if the Pod service account name is not matched with value of `PIGGY_ALLOWED_SA`.
-
-You can add multiple service account name by separate each name with comma.
+You can add multiple service account names by separating each name with a comma.
 
 For example:
 
@@ -183,15 +182,16 @@ For example:
 myapp-namespace:myapp,myanotherapp-namespace:default
 ```
 
-### Preventing unauthorized pods to read secrets
+### Preventing unauthorized pods from reading secrets
 
-The Piggy provides 3 concepts to protect secrets.
+Piggy provides three ways to protect secrets:
 
-  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity). The Piggy will generate a check sum using SHA256 algorithm from a container command.
-  Then piggy-env will generate another check sum on running command every time when communicate with piggy-webhooks. If the check sum is not matched with original value, it will reject the request.
-  For example, if your container starts with command `rails server`, you won't be able to `exec` into pod and run `rails console` to get secrets. This option is enabled by default.
-  - Piggy will generate a UID for each containers during mutation process. If the requests from container is not matched the UID which was generated, it will reject.
-  - Uses [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrets by service account name
+  - By enabling [piggy-enforce-integrity](https://github.com/KongZ/piggy/blob/main/docs/annotations.md#piggy-enforce-integrity), Piggy generates a checksum using the SHA256 algorithm from the container command.
+    Then, piggy-env generates another checksum for the running command every time it communicates with piggy-webhooks. If the checksum does not match the original value, the request is rejected.
+    For example, if your container starts with the command `rails server`, you won't be able to `exec` into the pod and run `rails console` to get secrets. This option is enabled by default.
+  - Piggy generates a UID for each container during the mutation process. If a request from a container does not match the generated UID, it is rejected.
+  - Use [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrets by service account name.
+  - **[New]** Use [matchConditions](docs/optimizing-webhook.md#2-match-conditions-recommended-for-k8s-127) and [objectSelector](docs/optimizing-webhook.md#1-object-selector-recommended-for-all-versions) to optimize webhook performance and reduce API server overhead.
 
 ### Default secret name
 
@@ -206,9 +206,7 @@ For example, if `PIGGY_DEFAULT_SECRET_NAME_SUFFIX=/production`, the default secr
 
 You can see examples at [https://github.com/KongZ/piggy/tree/main/demo]
 
-### Default AWS Region
-
-You can set default AWS Region by set ENV `AWS_REGION` on Piggy Webhooks. If `AWS_REGION` is set on Piggy Webhooks, you do not need to set an annotation `piggysec.com/aws-region` on Pod. In other word, the settings on Piggy Webhooks ENV can be overridden by pods annotations.
+You can set the default AWS region by setting the `AWS_REGION` environment variable on Piggy Webhooks. If `AWS_REGION` is set on Piggy Webhooks, you do not need to set the `piggysec.com/aws-region` annotation on the Pod. In other words, the settings on Piggy Webhooks can be overridden by Pod annotations.
 
 You can see examples at [https://github.com/KongZ/piggy/tree/main/demo]
 
@@ -236,34 +234,36 @@ read the secrets from AWS Secret Manager. You can enable standalone mode by addi
 └───────────┘      └───────────┘
 ```
 
-Since the standalone mode does not use Piggy Webhooks thus the Pod must have a permission to read secrets from AWS Secret Manager.
-You need to setup AWS IRSA with at least this permission
+Standalone mode does not use Piggy Webhooks; therefore, the Pod must have permission to read secrets from AWS Secrets Manager.
+You need to setup AWS IRSA with at least this permission:
 
 ```yaml
 {
   "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PiggySecretReadOnly",
-      "Action": [
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:GetResourcePolicy",
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:ListSecretVersionIds",
-        "secretsmanager:ListSecrets"
-      ],
-      "Effect": "Allow",
-      "Resource": "${your-secret-name-arn}"
-    }
-  ]
+  "Statement":
+    [
+      {
+        "Sid": "PiggySecretReadOnly",
+        "Action":
+          [
+            "secretsmanager:DescribeSecret",
+            "secretsmanager:GetResourcePolicy",
+            "secretsmanager:GetSecretValue",
+            "secretsmanager:ListSecretVersionIds",
+            "secretsmanager:ListSecrets",
+          ],
+        "Effect": "Allow",
+        "Resource": "${your-secret-name-arn}",
+      },
+    ],
 }
 ```
 
-Then add then follow annotations to Pod. You may notice, you don't have to provide the Piggy Webhooks address in this mode.
+Then add the following annotations to the Pod. Note that you don't have to provide the Piggy Webhooks address in this mode.
 
-  - `piggysec.com/aws-secret-name` - set a value to your AWS secret name
-  - `piggysec.com/aws-region` - set a value to your AWS secret manager region
-  - `piggysec.com/standalone` - set a value to true
+  - `piggysec.com/aws-secret-name` - set to your AWS secret name
+  - `piggysec.com/aws-region` - set to your AWS Secrets Manager region
+  - `piggysec.com/standalone` - set to true
 
 ```yaml
 apiVersion: v1
@@ -295,10 +295,10 @@ spec:
       projected:
         defaultMode: 420
         sources:
-        - serviceAccountToken:
-            audience: sts.amazonaws.com
-            expirationSeconds: 86400
-            path: token
+          - serviceAccountToken:
+              audience: sts.amazonaws.com
+              expirationSeconds: 86400
+              path: token
 ```
 
 And the service account
@@ -310,11 +310,10 @@ metadata:
   name: myapp
   annotations:
     eks.amazonaws.com/role-arn: ${your-role-arn}
-
 ```
 
-Note: in standalone mode, piggy-env talks directly to AWS secret manager without talking to Kubernetes API or piggy-webhooks.
-The secrets is fully protected by AWS role permissions.
+Note: In standalone mode, piggy-env talks directly to the AWS Secrets Manager without communicating with the Kubernetes API or Piggy Webhooks.
+The secrets are fully protected by AWS IAM role permissions.
 
 ## How does it work
 
@@ -342,21 +341,31 @@ pods and injecting secrets into containers
 
 See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md)
 
-## Annotations
+## Choose the Secret Version
 
-See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
+You can specify the unique identifier of the version of the secret to retrieve. If you don't specify the piggy returns the AWSCURRENT version. To specify the secret version, annotate the pods with `piggysec.com/aws-secret-version` where the value is the unique identifier of the version.
+
+## Documentation
+
+  - [How it works](docs/how-it-works.md)
+  - [Annotations](docs/annotations.md)
+  - [Optimizing Webhook Invocations](docs/optimizing-webhook.md)
+  - [Helm Chart Documentation](charts/piggy-webhooks/README.md)
+  - [Troubleshooting](docs/troubleshooting.md)
+  - [Contributing](CONTRIBUTING.md)
+  - [Security Policy](SECURITY.md)
 
 ## SSM Parameter Store
 
-The piggy also support SSM Parameter Store. To retrieve secrets from parameter store, you will just add an annotation `piggysec.com/aws-ssm-parameter-path`. The piggy automatically detect this annotation and pull the secrets from parameter store instead of secret manager.
+Piggy also supports SSM Parameter Store. To retrieve secrets from Parameter Store, simply add the annotation `piggysec.com/aws-ssm-parameter-path`. Piggy automatically detects this annotation and pulls the secrets from Parameter Store instead of Secrets Manager.
 
-*Note:* it support only [GetParameterByPath](https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParametersByPath.html) so referencing AWS Secrets Manager secrets from Parameter Store parameters is not supported yet.
+_Note:_ It only supports [GetParameterByPath](https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParametersByPath.html). Referencing AWS Secrets Manager secrets from Parameter Store parameters is not yet supported.
 
 Annotations
 
 ### Parameter path
 
-The parameter store is reference in a [hierarchy](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-su-create.html). The `piggysec.com/aws-ssm-parameter-path` annotation will refer to parameter path and name will be a last value of path. For example:
+Parameter Store parameters are referenced in a [hierarchy](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-su-create.html). The `piggysec.com/aws-ssm-parameter-path` annotation refers to the parameter path, and the name will be the last element of the path. For example:
 
 ![ssm_parameter_store](https://raw.githubusercontent.com/KongZ/piggy/main/docs/images/ssm_parameter_store.png "ssm_parameter_store")
 
@@ -377,11 +386,9 @@ And the environment variable are
   value: piggy:TEST_PLAIN
 ```
 
-### Policy for SSM Parameter Store
+The `ssm:GetParametersByPath` permission is required for reading from Parameter Store.
 
-Required `ssm:GetParametersByPath` permission for reading parameter store.
-
-Example minimum policy for reading value from SSM Parameter Store
+Example minimum policy for reading values from SSM Parameter Store:
 
 ```json
 {
@@ -390,9 +397,7 @@ Example minimum policy for reading value from SSM Parameter Store
     {
       "Sid": "PiggySSM",
       "Effect": "Allow",
-      "Action": [
-        "ssm:GetParametersByPath"
-      ],
+      "Action": ["ssm:GetParametersByPath"],
       "Resource": "*"
     },
     {
