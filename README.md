@@ -188,6 +188,7 @@ Piggy provides three ways to protect secrets:
   For example, if your container starts with the command `rails server`, you won't be able to `exec` into the pod and run `rails console` to get secrets. This option is enabled by default.
   - Piggy generates a UID for each container during the mutation process. If a request from a container does not match the generated UID, it is rejected.
   - Use [PIGGY_ALLOWED_SA](https://github.com/KongZ/piggy#limit-secrets-injection-only-allowed-service-accounts) to limit access to secrets by service account name.
+- **[New]** Use [matchConditions](docs/optimizing-webhook.md#2-match-conditions-recommended-for-k8s-127) and [objectSelector](docs/optimizing-webhook.md#1-object-selector-recommended-for-all-versions) to optimize webhook performance and reduce API server overhead.
 
 ### Default secret name
 
@@ -340,9 +341,15 @@ See [how it works](https://github.com/KongZ/piggy/tree/main/docs/how-it-works.md
 
 You can specify the unique identifier of the version of the secret to retrieve. If you don't specify the piggy returns the AWSCURRENT version. To specify the secret version, annotate the pods with `piggysec.com/aws-secret-version` where the value is the unique identifier of the version.
 
-## Annotations
+## Documentation
 
-See [annotations](https://github.com/KongZ/piggy/tree/main/docs/annotations.md)
+- [How it works](docs/how-it-works.md)
+- [Annotations](docs/annotations.md)
+- [Optimizing Webhook Invocations](docs/optimizing-webhook.md)
+- [Helm Chart Documentation](charts/piggy-webhooks/README.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
 
 ## SSM Parameter Store
 

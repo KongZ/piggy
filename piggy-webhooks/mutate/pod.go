@@ -193,9 +193,6 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 // MutatePod mutate pod
 func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (interface{}, error) {
 	start := time.Now()
-
-	// Check if already mutated - Remove global short-circuit to support granular idempotency for reinvocations
-
 	// Mutate pod only when it containing piggysec.com/aws-secret-name or piggysec.com/aws-ssm-parameter-path or piggysec.com/piggy-address annotation
 	if config.AWSSecretName != "" || config.AWSSSMParameterPath != "" || config.PiggyAddress != "" {
 		signature := make(Signature)
