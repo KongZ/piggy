@@ -47,8 +47,9 @@ func TestMutateCommand(t *testing.T) {
 		Command: []string{"/piggy/piggy-env"},
 		Args:    []string{"--", "ls", "-la"},
 	}
-	args, err := m.mutateCommand(config, c1, pod)
+	args, mutated, err := m.mutateCommand(config, c1, pod)
 	assert.NoError(t, err)
+	assert.False(t, mutated)
 	assert.Equal(t, []string{"ls", "-la"}, args)
 
 	// Case 2: Empty command, mock registry
@@ -59,8 +60,9 @@ func TestMutateCommand(t *testing.T) {
 		Entrypoint: []string{"sh"},
 		Cmd:        []string{"-c", "echo hello"},
 	}
-	args, err = m.mutateCommand(config, c2, pod)
+	args, mutated, err = m.mutateCommand(config, c2, pod)
 	assert.NoError(t, err)
+	assert.True(t, mutated)
 	assert.Equal(t, []string{"sh", "-c", "echo hello"}, args)
 	assert.Equal(t, []string{"/piggy/piggy-env"}, c2.Command)
 	assert.Equal(t, []string{"--", "sh", "-c", "echo hello"}, c2.Args)
@@ -69,8 +71,9 @@ func TestMutateCommand(t *testing.T) {
 	c3 := &corev1.Container{
 		Command: []string{"python", "app.py"},
 	}
-	args, err = m.mutateCommand(config, c3, pod)
+	args, mutated, err = m.mutateCommand(config, c3, pod)
 	assert.NoError(t, err)
+	assert.True(t, mutated)
 	assert.Equal(t, []string{"python", "app.py"}, args)
 }
 
@@ -89,8 +92,9 @@ func TestMutateContainer_Skip(t *testing.T) {
 		},
 	}
 
-	sig, err := m.mutateContainer("uid", config, container, pod)
+	sig, mutated, err := m.mutateContainer("uid", config, container, pod)
 	assert.NoError(t, err)
+	assert.False(t, mutated)
 	assert.Empty(t, sig)
 }
 
@@ -124,8 +128,9 @@ func TestMutateContainer_EnvFrom(t *testing.T) {
 		},
 	}
 
-	sig, err := m.mutateContainer("uid", config, container, pod)
+	sig, mutated, err := m.mutateContainer("uid", config, container, pod)
 	assert.NoError(t, err)
+	assert.True(t, mutated)
 	assert.NotEmpty(t, sig)
 
 	// Verify injection
@@ -173,6 +178,7 @@ func TestMutatePod_GranularIdempotency(t *testing.T) {
 	assert.Len(t, pod.Spec.Volumes, 1)
 	assert.Len(t, pod.Spec.InitContainers, 1)
 	assert.Equal(t, "install-piggy-env", pod.Spec.InitContainers[0].Name)
+	assert.Equal(t, corev1.ContainerRestartPolicyAlways, *pod.Spec.InitContainers[0].RestartPolicy)
 
 	// Second mutation (reinvocation)
 	_, err = m.MutatePod(config, pod)

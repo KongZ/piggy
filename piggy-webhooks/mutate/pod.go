@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -25,14 +26,14 @@ func getSecurityContext(config *service.PiggyConfig, podSecurityContext *corev1.
 	return sc
 }
 
-func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) ([]string, error) {
+func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) ([]string, bool, error) {
 	// check if already mutated
 	if len(container.Command) == 1 && container.Command[0] == "/piggy/piggy-env" {
 		if len(container.Args) > 0 && container.Args[0] == "--" {
 			// return original command (skipping the --)
-			return container.Args[1:], nil
+			return container.Args[1:], false, nil
 		}
-		return container.Args, nil
+		return container.Args, false, nil
 	}
 	entry := container.Command
 	// if the container has no explicitly specified command
@@ -40,7 +41,7 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 		// read docker image
 		imageConfig, err := m.registry.GetImageConfig(m.context, config, pod.Namespace, *container, pod.Spec)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		entry = append(entry, imageConfig.Entrypoint...)
 		// If no Args are defined we can use the Docker CMD from the image
@@ -58,16 +59,17 @@ func (m *Mutating) mutateCommand(config *service.PiggyConfig, container *corev1.
 	copy(args[1:], entry)
 	container.Command = []string{"/piggy/piggy-env"}
 	container.Args = args
-	return entry, nil
+	return entry, true, nil
 }
 
-func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) (string, error) {
+func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, container *corev1.Container, pod *corev1.Pod) (string, bool, error) {
 	mutate := false
+	mutated := false
 	var envVars []corev1.EnvVar
 	if len(container.EnvFrom) > 0 {
 		envFrom, err := m.LookForEnvFrom(container.EnvFrom, pod.Namespace)
 		if err != nil {
-			return "", fmt.Errorf("unable to read envFrom: %v", err)
+			return "", false, fmt.Errorf("unable to read envFrom: %v", err)
 		}
 		envVars = append(envVars, envFrom...)
 	}
@@ -75,7 +77,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 		if env.ValueFrom != nil {
 			valueFrom, err := m.LookForValueFrom(env, pod.Namespace)
 			if err != nil {
-				return "", fmt.Errorf("unable to read valueFrom: %v", err)
+				return "", false, fmt.Errorf("unable to read valueFrom: %v", err)
 			}
 			if valueFrom != nil {
 				envVars = append(envVars, *valueFrom)
@@ -92,7 +94,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 	}
 	if !mutate {
 		log.Debug().Str("namespace", pod.Namespace).Msgf("Skip mutating '%s' container ...", container.Name)
-		return "", nil
+		return "", false, nil
 	}
 	// env vars to inject
 	envs := []corev1.EnvVar{
@@ -150,13 +152,17 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 		found := false
 		for i, cEnv := range container.Env {
 			if cEnv.Name == env.Name {
-				container.Env[i] = env
+				if !reflect.DeepEqual(container.Env[i], env) {
+					container.Env[i] = env
+					mutated = true
+				}
 				found = true
 				break
 			}
 		}
 		if !found {
 			container.Env = append(container.Env, env)
+			mutated = true
 		}
 	}
 
@@ -173,12 +179,17 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 			Name:      service.VolumeNamePiggy,
 			MountPath: "/piggy/",
 		})
+		mutated = true
 	}
 	log.Debug().Str("namespace", pod.Namespace).Msgf("Modifying command '%s' containers ...", container.Name)
 	var args []string
 	var err error
-	if args, err = m.mutateCommand(config, container, pod); err != nil {
+	var commandMutated bool
+	if args, commandMutated, err = m.mutateCommand(config, container, pod); err != nil {
 		log.Info().Str("namespace", pod.Namespace).Str("pod_name", pod.Name).Msgf("Error while mutating '%s' container command [%v]", container.Name, err)
+	}
+	if commandMutated {
+		mutated = true
 	}
 	// signature
 	sig := strings.TrimSpace(strings.Join(args, " "))
@@ -187,7 +198,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 	if err != nil {
 		log.Error().Msgf("%v", err)
 	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return fmt.Sprintf("%x", h.Sum(nil)), mutated, nil
 }
 
 // MutatePod mutate pod
@@ -195,6 +206,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 	start := time.Now()
 	// Mutate pod only when it containing piggysec.com/aws-secret-name or piggysec.com/aws-ssm-parameter-path or piggysec.com/piggy-address annotation
 	if config.AWSSecretName != "" || config.AWSSSMParameterPath != "" || config.PiggyAddress != "" {
+		wasMutated := false
 		signature := make(Signature)
 		log.Debug().Str("namespace", pod.Namespace).Msgf("Adding volumes to podspec ...")
 		foundVolume := false
@@ -213,14 +225,19 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 					},
 				},
 			})
+			wasMutated = true
 		}
 		log.Debug().Str("namespace", pod.Namespace).Msgf("Mutating init-containers ...")
 		for i := range pod.Spec.InitContainers {
 			var err error
+			var mutated bool
 			uid := m.generateUID()
-			sig, err := m.mutateContainer(uid, config, &pod.Spec.InitContainers[i], pod)
+			sig, mutated, err := m.mutateContainer(uid, config, &pod.Spec.InitContainers[i], pod)
 			if err != nil {
 				return nil, err
+			}
+			if mutated {
+				wasMutated = true
 			}
 			if sig != "" {
 				signature[uid] = sig
@@ -237,6 +254,7 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		if !foundInitContainer {
 			initContainers := make([]corev1.Container, len(pod.Spec.InitContainers)+1)
 			copy(initContainers[1:], pod.Spec.InitContainers)
+			restartPolicyAlways := corev1.ContainerRestartPolicyAlways
 			initContainers[0] = corev1.Container{
 				Name:            "install-piggy-env",
 				Image:           config.PiggyImage,
@@ -259,16 +277,22 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 						corev1.ResourceMemory: config.PiggyResourceMemoryRequest,
 					},
 				},
+				RestartPolicy: &restartPolicyAlways,
 			}
 			pod.Spec.InitContainers = initContainers
+			wasMutated = true
 		}
 		log.Debug().Str("namespace", pod.Namespace).Msgf("Mutating containers ...")
 		for i := range pod.Spec.Containers {
 			var err error
+			var mutated bool
 			uid := m.generateUID()
-			sig, err := m.mutateContainer(uid, config, &pod.Spec.Containers[i], pod)
+			sig, mutated, err := m.mutateContainer(uid, config, &pod.Spec.Containers[i], pod)
 			if err != nil {
 				return nil, err
+			}
+			if mutated {
+				wasMutated = true
 			}
 			if sig != "" {
 				signature[uid] = sig
@@ -278,13 +302,24 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		if err != nil {
 			return nil, fmt.Errorf("marshaling signature: %v", err)
 		}
-		pod.Annotations[service.Namespace+service.ConfigPiggyUID] = string(bytes)
+		if pod.Annotations[service.Namespace+service.ConfigPiggyUID] != string(bytes) {
+			pod.Annotations[service.Namespace+service.ConfigPiggyUID] = string(bytes)
+			wasMutated = true
+		}
 		// log
 		logEvent := log.Info().Str("namespace", pod.Namespace)
 		if pod.Name == "" && len(pod.OwnerReferences) > 0 {
-			logEvent.Str("owner", pod.OwnerReferences[0].Name).Msgf("Pod of %s '%s' has been mutated (took %s)", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name, time.Since(start))
+			if !wasMutated {
+				logEvent.Str("owner", pod.OwnerReferences[0].Name).Msgf("Mutation is skipped since it was already mutated for %s '%s'", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name)
+			} else {
+				logEvent.Str("owner", pod.OwnerReferences[0].Name).Msgf("Pod of %s '%s' has been mutated (took %s)", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name, time.Since(start))
+			}
 		} else {
-			logEvent.Str("pod_name", pod.Name).Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
+			if !wasMutated {
+				logEvent.Str("pod_name", pod.Name).Msgf("Mutation is skipped since it was already mutated for pod '%s'", pod.Name)
+			} else {
+				logEvent.Str("pod_name", pod.Name).Msgf("Pod '%s' has been mutated (took %s)", pod.Name, time.Since(start))
+			}
 		}
 		return pod, nil
 	}
