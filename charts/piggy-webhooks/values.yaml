@@ -11,7 +11,7 @@ image:
   ## Image pull policy.
   pullPolicy: IfNotPresent
   ## Overrides the image tag whose default is the chart appVersion.
-  tag: "0.7.3"
+  tag: "0.7.4"
 
 ## List of image pull secrets for the deployment.
 imagePullSecrets: []
@@ -188,7 +188,7 @@ mutate:
     ## Image pull policy for piggy-env.
     pullPolicy: IfNotPresent
     ## Image tag for piggy-env.
-    tag: "0.7.3"
+    tag: "0.7.4"
   ## If the pods being admitted is modified by other admission plugins after the initial webhook call,
   ## set this value to 'IfNeeded' to allow the webhook to be called again. Set to 'Never' to prevent the webhook from being called again.
   reinvocationPolicy: IfNeeded
