@@ -254,7 +254,6 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 		if !foundInitContainer {
 			initContainers := make([]corev1.Container, len(pod.Spec.InitContainers)+1)
 			copy(initContainers[1:], pod.Spec.InitContainers)
-			restartPolicyOnFailure := corev1.ContainerRestartPolicyOnFailure
 			initContainers[0] = corev1.Container{
 				Name:            "install-piggy-env",
 				Image:           config.PiggyImage,
@@ -277,7 +276,6 @@ func (m *Mutating) MutatePod(config *service.PiggyConfig, pod *corev1.Pod) (inte
 						corev1.ResourceMemory: config.PiggyResourceMemoryRequest,
 					},
 				},
-				RestartPolicy: &restartPolicyOnFailure,
 			}
 			pod.Spec.InitContainers = initContainers
 			wasMutated = true

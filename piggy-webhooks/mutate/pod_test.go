@@ -178,7 +178,6 @@ func TestMutatePod_GranularIdempotency(t *testing.T) {
 	assert.Len(t, pod.Spec.Volumes, 1)
 	assert.Len(t, pod.Spec.InitContainers, 1)
 	assert.Equal(t, "install-piggy-env", pod.Spec.InitContainers[0].Name)
-	assert.Equal(t, corev1.ContainerRestartPolicyOnFailure, *pod.Spec.InitContainers[0].RestartPolicy)
 
 	// Second mutation (reinvocation)
 	_, err = m.MutatePod(config, pod)
