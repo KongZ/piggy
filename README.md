@@ -1,4 +1,4 @@
-![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Copilot Code Review](https://github.com/KongZ/piggy/actions/workflows/copilot-pull-request-reviewer/badge.svg)](https://github.com/KongZ/piggy/actions/workflows/copilot-pull-request-reviewer)
 [![CodeQL](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/KongZ/piggy/actions/workflows/codeql-analysis.yml)
