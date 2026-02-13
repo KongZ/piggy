@@ -250,6 +250,7 @@ func TestInjectSecrets_Success(t *testing.T) {
 
 	svc := &Service{
 		awsFactory: mockFactory,
+		context:    context.Background(),
 	}
 
 	config := &PiggyConfig{
@@ -275,6 +276,7 @@ func TestInjectSecrets_Error(t *testing.T) {
 
 	svc := &Service{
 		awsFactory: mockFactory,
+		context:    context.Background(),
 	}
 
 	config := &PiggyConfig{
@@ -311,6 +313,7 @@ func TestInjectParameters_Success(t *testing.T) {
 
 	svc := &Service{
 		awsFactory: mockFactory,
+		context:    context.Background(),
 	}
 
 	config := &PiggyConfig{
