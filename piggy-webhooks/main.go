@@ -55,10 +55,7 @@ func main() {
 		w.WriteHeader(200)
 	}))
 	mux.Handle("/mutate", handler.AdmitHandler(mut.ApplyPiggy))
-	svc, err := service.NewService(context.Background(), k8s)
-	if err != nil {
-		log.Fatal().Msgf("error creating service: %s", err)
-	}
+	svc := service.NewService(context.Background(), k8s)
 	mux.Handle("/secret", handler.SecretHandler(svc.GetSecret))
 	ch := make(chan struct{})
 	enabledTLS := !(certPath == "" && keyPath == "")

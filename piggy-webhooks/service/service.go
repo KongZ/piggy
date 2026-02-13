@@ -99,13 +99,13 @@ type Service struct {
 }
 
 // NewService new service
-func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, error) {
+func NewService(ctx context.Context, k8sClient kubernetes.Interface) *Service {
 	svc := &Service{
 		context:    ctx,
 		k8sClient:  k8sClient,
 		awsFactory: &DefaultAWSClientFactory{},
 	}
-	return svc, nil
+	return svc
 }
 
 // GetEnv get environment value or return default value if not found

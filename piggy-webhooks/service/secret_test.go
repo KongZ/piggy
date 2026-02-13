@@ -17,11 +17,10 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-func setupTest(t *testing.T, objects ...runtime.Object) (context.Context, *fake.Clientset, *Service) {
+func setupTest(objects ...runtime.Object) (context.Context, *fake.Clientset, *Service) {
 	ctx := context.Background()
 	client := fake.NewClientset(objects...)
-	svc, err := NewService(ctx, client)
-	assert.NoError(t, err)
+	svc := NewService(ctx, client)
 	return ctx, client, svc
 }
 
@@ -53,14 +52,14 @@ func newPod(ns, name, sa string, annotations map[string]string) *corev1.Pod {
 
 // TestNewService verifies the initialization of the secret service.
 func TestNewService(t *testing.T) {
-	_, client, svc := setupTest(t)
+	_, client, svc := setupTest()
 	assert.NotNil(t, svc)
 	assert.Equal(t, client, svc.k8sClient)
 }
 
 // TestGetSecret_AuthenticationFailure ensures that unauthenticated requests are rejected.
 func TestGetSecret_AuthenticationFailure(t *testing.T) {
-	_, client, svc := setupTest(t)
+	_, client, svc := setupTest()
 	mockTokenReview(client, "", false)
 
 	payload := &GetSecretPayload{
@@ -74,7 +73,7 @@ func TestGetSecret_AuthenticationFailure(t *testing.T) {
 
 // TestGetSecret_PodNotFound verifies that requests for unknown pods result in an error.
 func TestGetSecret_PodNotFound(t *testing.T) {
-	_, client, svc := setupTest(t)
+	_, client, svc := setupTest()
 	mockTokenReview(client, "system:serviceaccount:default:test-sa", true)
 
 	payload := &GetSecretPayload{
@@ -94,7 +93,7 @@ func TestGetSecret_InvalidSignature(t *testing.T) {
 		Namespace + ConfigPiggyUID: `{"test-uid": "correct-signature"}`,
 	})
 
-	_, client, svc := setupTest(t, pod)
+	_, client, svc := setupTest(pod)
 	mockTokenReview(client, "system:serviceaccount:"+ns+":"+sa, true)
 
 	payload := &GetSecretPayload{
@@ -117,7 +116,7 @@ func TestGetSecret_Success_MockingAWS(t *testing.T) {
 		Namespace + ConfigPiggyEnforceIntegrity: "false",
 	})
 
-	_, client, svc := setupTest(t, pod)
+	_, client, svc := setupTest(pod)
 	mockTokenReview(client, "system:serviceaccount:"+ns+":"+sa, true)
 
 	payload := &GetSecretPayload{
@@ -196,7 +195,7 @@ func TestGetSecret_InvalidServiceAccount(t *testing.T) {
 	ns, name, sa, otherSa := "default", "test-pod", "test-sa", "other-sa"
 	pod := newPod(ns, name, sa, nil)
 
-	_, client, svc := setupTest(t, pod)
+	_, client, svc := setupTest(pod)
 	// Token is for otherSa
 	mockTokenReview(client, "system:serviceaccount:"+ns+":"+otherSa, true)
 
@@ -217,7 +216,7 @@ func TestGetSecret_MissingUID(t *testing.T) {
 		Namespace + ConfigPiggyUID: "{}", // Empty signature
 	})
 
-	_, client, svc := setupTest(t, pod)
+	_, client, svc := setupTest(pod)
 	mockTokenReview(client, "system:serviceaccount:"+ns+":"+sa, true)
 
 	payload := &GetSecretPayload{
