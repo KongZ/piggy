@@ -100,4 +100,25 @@ func TestSecretHandler_Errors(t *testing.T) {
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusForbidden, rr.Code)
+
+	// Case 5: Generic Error
+	secretFuncError := func(payload *service.GetSecretPayload) (*service.SanitizedEnv, service.Info, error) {
+		return nil, service.Info{}, assert.AnError
+	}
+	handler = SecretHandler(secretFuncError)
+	req, _ = http.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"name":"pod"}`))
+	req.Header.Set("Content-Type", JSONContentType)
+	req.Header.Set("X-Token", "valid-token")
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	// Case 6: Empty Name
+	handler = SecretHandler(nil)
+	req, _ = http.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"name":""}`))
+	req.Header.Set("Content-Type", JSONContentType)
+	req.Header.Set("X-Token", "valid-token")
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }

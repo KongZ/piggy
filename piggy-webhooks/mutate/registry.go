@@ -23,15 +23,17 @@ type containerInfo struct {
 
 // ImageRegistry object
 type ImageRegistry struct {
-	imageCache map[string]*v1.Config
-	config     *service.PiggyConfig
+	imageCache   map[string]*v1.Config
+	config       *service.PiggyConfig
+	imageFetcher func(ctx context.Context, config *service.PiggyConfig, container containerInfo) (*v1.Config, error)
 }
 
 // NewRegistry creates and initializes registry
 func NewRegistry(config *service.PiggyConfig) *ImageRegistry {
 	return &ImageRegistry{
-		imageCache: make(map[string]*v1.Config),
-		config:     config,
+		imageCache:   make(map[string]*v1.Config),
+		config:       config,
+		imageFetcher: getImageConfig,
 	}
 }
 
@@ -118,7 +120,7 @@ func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.Pigg
 		containerInfo.ImagePullSecrets = append(containerInfo.ImagePullSecrets, config.ImagePullSecret)
 	}
 	log.Debug().Msgf("Container info %+v", containerInfo)
-	imageConfig, err := getImageConfig(ctx, config, containerInfo)
+	imageConfig, err := r.imageFetcher(ctx, config, containerInfo)
 	if imageConfig != nil && isAllowedToCache(container) {
 		r.imageCache[container.Image] = imageConfig
 	}

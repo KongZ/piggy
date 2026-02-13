@@ -51,7 +51,7 @@ spec:
               value: {{ $val | quote }}
             {{- end }}
           ports:
-            - name: http
+            - name: tcp
               containerPort: {{ .Values.port }}
               protocol: TCP
           livenessProbe:

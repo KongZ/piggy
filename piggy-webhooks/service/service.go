@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -88,6 +90,22 @@ type PiggyConfig struct {
 	PiggyDefaultSecretNameSuffix string `json:"piggyDefaultSecretNameSuffix"`
 	//
 	PodServiceAccountName string
+}
+
+type Service struct {
+	context    context.Context
+	k8sClient  kubernetes.Interface
+	awsFactory AWSClientFactory
+}
+
+// NewService new service
+func NewService(ctx context.Context, k8sClient kubernetes.Interface) *Service {
+	svc := &Service{
+		context:    ctx,
+		k8sClient:  k8sClient,
+		awsFactory: &DefaultAWSClientFactory{},
+	}
+	return svc
 }
 
 // GetEnv get environment value or return default value if not found
