@@ -9,14 +9,12 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/smithy-go"
 	authv1 "k8s.io/api/authentication/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/rs/zerolog/log"
 )
@@ -42,20 +40,6 @@ type Info struct {
 }
 
 type Signature map[string]string
-
-type Service struct {
-	context   context.Context
-	k8sClient kubernetes.Interface
-}
-
-// NewService new service
-func NewService(ctx context.Context, k8sClient kubernetes.Interface) (*Service, error) {
-	svc := &Service{
-		context:   ctx,
-		k8sClient: k8sClient,
-	}
-	return svc, nil
-}
 
 var sanitizeEnvmap = map[string]bool{
 	"PIGGY_AWS_SECRET_NAME":            true,
@@ -92,15 +76,13 @@ func awsErr(err error) bool {
 	return false
 }
 
-func injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
+func (s *Service) injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a SSM client
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
-		awsConfig.WithRegion(config.AWSRegion),
-	)
+	pm, err := s.awsFactory.GetSSMClient(s.context, config.AWSRegion)
 	if err != nil {
 		return err
 	}
-	pm := ssm.NewFromConfig(cfg)
+
 	// Get parameter values
 	var nextToken *string
 	secrets := make(map[string]string)
@@ -113,7 +95,7 @@ func injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
 			MaxResults:     aws.Int32(10),
 			NextToken:      nextToken,
 		}
-		output, err := pm.GetParametersByPath(context.TODO(), input)
+		output, err := pm.GetParametersByPath(s.context, input)
 		if awsErr(err) {
 			return err
 		}
@@ -129,22 +111,19 @@ func injectParameters(config *PiggyConfig, env *SanitizedEnv) error {
 	return processSecret(config, secrets, env)
 }
 
-func injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
+func (s *Service) injectSecrets(config *PiggyConfig, env *SanitizedEnv) error {
 	// Create a Secrets Manager client
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
-		awsConfig.WithRegion(config.AWSRegion),
-	)
+	sm, err := s.awsFactory.GetSecretsManagerClient(s.context, config.AWSRegion)
 	if err != nil {
 		return err
 	}
-	sm := secretsmanager.NewFromConfig(cfg)
 
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(config.AWSSecretName),
 		VersionStage: aws.String(config.AWSSecretVersion), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
-	output, err := sm.GetSecretValue(context.TODO(), input)
+	output, err := sm.GetSecretValue(s.context, input)
 	if awsErr(err) {
 		return err
 	}
@@ -277,9 +256,9 @@ func (s *Service) GetSecret(payload *GetSecretPayload) (*SanitizedEnv, Info, err
 	sanitized := &SanitizedEnv{}
 	if config.AWSSSMParameterPath != "" {
 		log.Debug().Msgf("SSM Parameter [path=%s]", config.AWSSSMParameterPath)
-		err = injectParameters(config, sanitized)
+		err = s.injectParameters(config, sanitized)
 	} else {
-		err = injectSecrets(config, sanitized)
+		err = s.injectSecrets(config, sanitized)
 	}
 	return sanitized, info, err
 }

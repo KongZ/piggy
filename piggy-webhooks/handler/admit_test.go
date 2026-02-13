@@ -229,4 +229,15 @@ func TestAdmitHandler_Errors(t *testing.T) {
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+	// Case 4: Nil Request in AdmissionReview
+	review = admissionv1.AdmissionReview{
+		Request: nil,
+	}
+	body, _ = json.Marshal(review)
+	req, _ = http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", JSONContentType)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
