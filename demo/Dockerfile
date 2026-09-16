@@ -1,4 +1,4 @@
-FROM golang:1.16.5-buster AS builder
+FROM golang:1.26.8-trixie AS builder
 
 # Install tools
 RUN apt update && apt -y --no-install-recommends install \
@@ -18,7 +18,7 @@ COPY main.go .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o demo .
 
 
-FROM debian:buster-slim
+FROM debian:trixie-slim
 RUN apt update && apt -y install curl
 
 # Create appuser
