@@ -1,3 +1,3 @@
 module github.com/KongZ/piggy/demo
 
-go 1.27.1
+go 1.26.8

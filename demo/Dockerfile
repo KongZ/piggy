@@ -1,4 +1,4 @@
-FROM golang:1.27.1-trixie AS builder
+FROM golang:1.26.8-trixie AS builder
 
 # Install tools
 RUN apt update && apt -y --no-install-recommends install \
