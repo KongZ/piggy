@@ -21,6 +21,9 @@ type containerInfo struct {
 	Image              string
 }
 
+// defaultImageFetcher reads image config from the registry; replaceable in tests
+var defaultImageFetcher = getImageConfig
+
 // ImageRegistry object
 type ImageRegistry struct {
 	imageCache   map[string]*v1.Config
@@ -33,7 +36,7 @@ func NewRegistry(config *service.PiggyConfig) *ImageRegistry {
 	return &ImageRegistry{
 		imageCache:   make(map[string]*v1.Config),
 		config:       config,
-		imageFetcher: getImageConfig,
+		imageFetcher: defaultImageFetcher,
 	}
 }
 
@@ -60,6 +63,7 @@ func getImageConfig(ctx context.Context, config *service.PiggyConfig, container 
 	}
 	options := []remote.Option{
 		remote.WithAuthFromKeychain(kc),
+		remote.WithContext(ctx),
 	}
 
 	if config.ImageSkipVerifyRegistry {
@@ -110,7 +114,7 @@ func (r *ImageRegistry) GetImageConfig(ctx context.Context, config *service.Pigg
 	// 1) pod.spec.imagePullSecrets
 	// 2) config.ImagePullSecret
 	// 3) ServiceAccount permission from cloud
-	containerInfo.ImagePullSecrets = make([]string, len(podSpec.ImagePullSecrets))
+	containerInfo.ImagePullSecrets = make([]string, 0, len(podSpec.ImagePullSecrets))
 	for _, imagePullSecret := range podSpec.ImagePullSecrets {
 		if imagePullSecret.Name != "" {
 			containerInfo.ImagePullSecrets = append(containerInfo.ImagePullSecrets, imagePullSecret.Name)

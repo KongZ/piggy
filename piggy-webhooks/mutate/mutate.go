@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/KongZ/piggy/piggy-webhooks/service"
 	"github.com/google/uuid"
@@ -17,6 +18,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 )
+
+// admissionTimeout bounds each admission; must stay below the webhook timeoutSeconds (10s)
+var admissionTimeout = 8 * time.Second
 
 var (
 	podResource           = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
@@ -105,8 +109,13 @@ func (m *Mutating) ApplyPiggy(req *admissionv1.AdmissionRequest) (interface{}, e
 			pod.Namespace = req.Namespace
 		}
 		config = m.mergeConfig(config, pod.Annotations)
-		m.registry = NewRegistry(config)
-		return m.MutatePod(config, &pod)
+		// per-request copy so concurrent admissions don't share the registry
+		reqMutating := *m
+		reqMutating.registry = NewRegistry(config)
+		var cancel context.CancelFunc
+		reqMutating.context, cancel = context.WithTimeout(m.context, admissionTimeout)
+		defer cancel()
+		return reqMutating.MutatePod(config, &pod)
 	}
 	return nil, nil
 }

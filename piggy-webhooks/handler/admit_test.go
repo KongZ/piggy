@@ -103,7 +103,8 @@ func TestAdmitHandler_Idempotency(t *testing.T) {
 			SecurityContext: &corev1.PodSecurityContext{},
 			Containers: []corev1.Container{
 				{
-					Name: "app",
+					Name:    "app",
+					Command: []string{"app"},
 					Env: []corev1.EnvVar{
 						{Name: "MY_SECRET", Value: "piggy:secret-key"},
 					},

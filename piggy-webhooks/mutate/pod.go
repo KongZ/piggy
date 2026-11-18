@@ -186,7 +186,7 @@ func (m *Mutating) mutateContainer(uid string, config *service.PiggyConfig, cont
 	var err error
 	var commandMutated bool
 	if args, commandMutated, err = m.mutateCommand(config, container, pod); err != nil {
-		log.Info().Str("namespace", pod.Namespace).Str("pod_name", pod.Name).Msgf("Error while mutating '%s' container command [%v]", container.Name, err)
+		return "", false, fmt.Errorf("unable to mutate '%s' container command: %w", container.Name, err)
 	}
 	if commandMutated {
 		mutated = true
