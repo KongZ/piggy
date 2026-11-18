@@ -89,8 +89,7 @@ func TestGetImageConfig_Fetch(t *testing.T) {
 	// Mock fetcher to verify secrets are passed correctly
 	r.imageFetcher = func(ctx context.Context, config *service.PiggyConfig, container containerInfo) (*v1.Config, error) {
 		assert.Equal(t, "piggy-ns", container.Namespace)
-		assert.Contains(t, container.ImagePullSecrets, "global-secret")
-		assert.Contains(t, container.ImagePullSecrets, "pod-secret")
+		assert.Equal(t, []string{"pod-secret", "global-secret"}, container.ImagePullSecrets)
 		return expectedConfig, nil
 	}
 

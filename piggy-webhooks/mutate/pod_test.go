@@ -118,7 +118,8 @@ func TestMutateContainer_EnvFrom(t *testing.T) {
 	}
 	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: ns}}
 	container := &corev1.Container{
-		Name: "test",
+		Name:    "test",
+		Command: []string{"app"},
 		EnvFrom: []corev1.EnvFromSource{
 			{
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -163,7 +164,8 @@ func TestMutatePod_GranularIdempotency(t *testing.T) {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name: "app",
+					Name:    "app",
+					Command: []string{"app"},
 					Env: []corev1.EnvVar{
 						{Name: "DB", Value: "piggy:db"},
 					},

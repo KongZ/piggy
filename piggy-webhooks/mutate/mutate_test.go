@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"sync"
 	"testing"
+	"time"
 
 	"errors"
 
@@ -191,7 +193,8 @@ func TestApplyPiggy(t *testing.T) {
 			SecurityContext: &corev1.PodSecurityContext{},
 			Containers: []corev1.Container{
 				{
-					Name: "app",
+					Name:    "app",
+					Command: []string{"app"},
 					Env: []corev1.EnvVar{
 						{Name: "DB_PASS", Value: "piggy:db-pass"},
 					},
@@ -318,7 +321,7 @@ func TestMergeConfig(t *testing.T) {
 	assert.Equal(t, "http://env-address", config.PiggyAddress)
 }
 
-// TestMutateCommand_Error checks that mutation continues even if image config fetching fails (it logs error).
+// TestMutateCommand_Error checks that mutation fails if image config fetching fails.
 func TestMutateCommand_Error(t *testing.T) {
 	ctx := context.Background()
 	client := fake.NewClientset()
@@ -347,15 +350,16 @@ func TestMutateCommand_Error(t *testing.T) {
 				{
 					Name: "app",
 					// No command specified, so it triggers registry lookup
+					Env: []corev1.EnvVar{{Name: "DB_PASS", Value: "piggy:db-pass"}},
 				},
 			},
 		},
 	}
 	// config is already defined above
 
-	// Should not return error, but log it
 	_, _, err := m.mutateContainer("uid", config, &pod.Spec.Containers[0], pod)
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "registry error")
 }
 
 // TestMutateContainer_FullConfig verifies that all configuration options are correctly injected as environment variables.
@@ -442,4 +446,77 @@ func TestMutateContainer_EnvFromError(t *testing.T) {
 	_, _, err := m.mutateContainer("uid", config, &pod.Spec.Containers[0], pod)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "k8s error")
+}
+
+// TestApplyPiggy_Concurrent verifies concurrent admissions do not share state (run with -race).
+func TestApplyPiggy_Concurrent(t *testing.T) {
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
+	pod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-pod",
+			Annotations: map[string]string{service.Namespace + service.AWSSecretName: "my-secret"},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:    "app",
+				Command: []string{"echo"},
+				Env:     []corev1.EnvVar{{Name: "DB_PASS", Value: "piggy:db-pass"}},
+			}},
+		},
+	}
+	rawPod, _ := json.Marshal(pod)
+	req := &admissionv1.AdmissionRequest{
+		Resource:  metav1.GroupVersionResource{Version: "v1", Resource: "pods"},
+		Object:    runtime.RawExtension{Raw: rawPod},
+		Namespace: "default",
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := m.ApplyPiggy(req)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+}
+
+// TestApplyPiggy_RegistryTimeout verifies a hanging image lookup is bounded by the admission deadline.
+func TestApplyPiggy_RegistryTimeout(t *testing.T) {
+	origTimeout, origFetcher := admissionTimeout, defaultImageFetcher
+	t.Cleanup(func() { admissionTimeout, defaultImageFetcher = origTimeout, origFetcher })
+	admissionTimeout = 100 * time.Millisecond
+	defaultImageFetcher = func(ctx context.Context, config *service.PiggyConfig, container containerInfo) (*v1.Config, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+
+	m, _ := NewMutating(context.Background(), fake.NewClientset())
+	pod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-pod",
+			Annotations: map[string]string{service.Namespace + service.AWSSecretName: "my-secret"},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "app",
+				Image: "my-image:v1",
+				Env:   []corev1.EnvVar{{Name: "DB_PASS", Value: "piggy:db-pass"}},
+			}},
+		},
+	}
+	rawPod, _ := json.Marshal(pod)
+	req := &admissionv1.AdmissionRequest{
+		Resource:  metav1.GroupVersionResource{Version: "v1", Resource: "pods"},
+		Object:    runtime.RawExtension{Raw: rawPod},
+		Namespace: "default",
+	}
+
+	start := time.Now()
+	_, err := m.ApplyPiggy(req)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Less(t, time.Since(start), 2*time.Second)
 }
